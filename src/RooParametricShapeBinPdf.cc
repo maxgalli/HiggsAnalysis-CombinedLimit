@@ -13,6 +13,7 @@
 #include "RooArgList.h"
 #include "RooRealProxy.h"
 #include "RooListProxy.h"
+#include "RooRealVarSharedProperties.h"
 
 using namespace std;
 using namespace RooFit;
