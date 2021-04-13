@@ -14,6 +14,7 @@
 #include "RooConstVar.h"
 #include "RooDataHist.h"
 #include "RooHistFunc.h"
+#include "RooListProxy.h"
 #include "RooRealProxy.h"
 #include "RooRealVar.h"
 #include "RooListProxy.h"

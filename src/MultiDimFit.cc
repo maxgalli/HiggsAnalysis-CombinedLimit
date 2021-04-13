@@ -25,6 +25,8 @@
 #include <Math/QuantFuncMathCore.h>
 #include <Math/ProbFunc.h>
 
+#include "strlcpy.h"
+
 using namespace RooStats;
 
 std::string MultiDimFit::name_ = "";

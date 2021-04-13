@@ -13,6 +13,7 @@
 #include "RooRealIntegral.h"
 #include "RooMsgService.h"
 #include "RooNameReg.h"
+#include "TClass.h"
 #include "TMath.h"
 #include "TH3F.h"
 #include "TAxis.h"
