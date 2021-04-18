@@ -11,7 +11,7 @@ void
 cacheutils::VectorizedHistFunc::fill() 
 {
     RooArgSet obs(*data_->get());
-    std::unique_ptr<RooArgSet> params(pdf_->getObservables(obs));
+    std::unique_ptr<RooArgSet> params(((RooAbsArg*)pdf_)->getObservables(obs));
 
     yvals_.reserve(data_->numEntries());
     for (unsigned int i = 0, n = data_->numEntries(); i < n; ++i) {
