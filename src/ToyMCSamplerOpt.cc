@@ -55,7 +55,6 @@ ToyMCSamplerOpt::~ToyMCSamplerOpt()
         delete it->second;
     }
     genCache_.clear();
-    delete _allVars; _allVars = 0;
     delete globalObsValues_;
 }
 
@@ -507,7 +506,6 @@ ToyMCSamplerOpt::SetPdf(RooAbsPdf& pdf)
     //std::cout << "ToyMCSamplerOpt::SetPdf called" << std::endl;
     //utils::printPdf(&pdf);
     ToyMCSampler::SetPdf(pdf);
-    delete _allVars; _allVars = 0; 
     delete globalObsValues_; globalObsValues_ = 0; globalObsIndex_ = -1;
     delete nuisValues_; nuisValues_ = 0; nuisIndex_ = -1;
 }
@@ -630,7 +628,7 @@ RooAbsData* ToyMCSamplerOpt::GenerateToyData(RooArgSet& /*nullPOI*/, double& wei
           globalObsIndex_  = 0;
       }
       const RooArgSet *values = globalObsValues_->get(globalObsIndex_++);
-      if (!_allVars) _allVars = fPdf->getObservables(*fGlobalObservables);
+      if (!_allVars) _allVars.reset(fPdf->getObservables(*fGlobalObservables));
       *_allVars = *values;
    }
 
