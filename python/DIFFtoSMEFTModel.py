@@ -1,9 +1,23 @@
+"""
+
+"""
 from HiggsAnalysis.CombinedLimit.PhysicsModel import *
 from HiggsAnalysis.CombinedLimit.SMHiggsBuilder import SMHiggsBuilder
 
 import ROOT
 import yaml
 import json
+import os
+
+edges = {
+    "hgg": { # see https://github.com/maxgalli/EFT2Obs/blob/WithHiggsDecay/RivetPlugins/Higgs2GGFiducialAndDifferential.cc
+        "pt": [0.0 ,5.0 , 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 45.0, 60.0, 80.0, 100.0, 120.0, 140.0, 170.0, 200.0, 250.0, 350.0, 450.0, 10000.0]
+    }
+}
+
+decay_file_conversions = {
+    "gamgam": "hgg"
+}
 
 
 class DIFFtoSMEFTModel(PhysicsModel):
@@ -78,9 +92,23 @@ class DIFFtoSMEFTModel(PhysicsModel):
 
         # Create scaling functions and add them to the model
         # Both production and decay
-        with open("{}/channels.json".format(self.input_dir), "r") as f:
-            production_terms = json.load(f)
-        
+        """
+        production_terms = {
+            "hgg": {
+                "0p0_5p0": {
+                    "A_cdp": ...,
+                }
+            }
+        }
+        """
+        production_terms = {}
+        for decay_channel_dir in os.listdir(os.path.join(self.input_dir, "differentials")):
+            production_terms[decay_channel_dir] = {}
+            with open(os.path.join(self.input_dir, "differentials", decay_channel_dir, "ggH_SMEFTatNLO_pt_gg.json"), "r") as f:
+                tmp_dct = json.load(f)
+                for edge, next_edge in zip(edges[decay_channel_dir]['pt'][:-1], edges[decay_channel_dir]['pt'][1:]):
+                    production_terms[decay_channel_dir]["{}_{}".format(str(edge).replace(".", "p"), str(next_edge).replace(".", "p"))] = tmp_dct[str(edge)]
+
         with open("{}/decay.json".format(self.input_dir), "r") as f:
             decay_terms = json.load(f)
 
@@ -89,12 +117,13 @@ class DIFFtoSMEFTModel(PhysicsModel):
         self.make_scaling_function("tot", decay_terms)
 
         for mode in decay_terms:
-            if mode != "tot":
-                self.make_scaling_function("partial_{}".format(mode), decay_terms[mode])
+            if mode != "tot" and mode in decay_file_conversions:
+                mode_conv_name = decay_file_conversions[mode]
+                self.make_scaling_function("partial_{}".format(mode_conv_name), decay_terms[mode])
                 
                 # And we make the BR by making the ratio with scaling_tot
-                print("Making scaling function scaling_BR_{}".format(mode))
-                self.modelBuilder.factory_('expr::scaling_BR_{}("@0/@1", scaling_partial_{}, scaling_tot)'.format(mode, mode))
+                print("Making scaling function scaling_BR_{}".format(mode_conv_name))
+                self.modelBuilder.factory_('expr::scaling_BR_{}("@0/@1", scaling_partial_{}, scaling_tot)'.format(mode_conv_name, mode_conv_name))
         
         # Now production (a bit more complicated)
         self.full_scaling_names = []
