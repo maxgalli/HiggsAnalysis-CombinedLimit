@@ -310,7 +310,7 @@ bool CascadeMinimizer::hesse(int verbose ) {
 }
 
 bool CascadeMinimizer::iterativeMinimize(double &minimumNLL,int verbose, bool cascade){
-
+  printf("Enter iterativeMinimize\n");
    /* 
    If there are discrete parameters, first we cycle through them, 
    fixing all parameters which do not depend on them 
@@ -322,7 +322,7 @@ bool CascadeMinimizer::iterativeMinimize(double &minimumNLL,int verbose, bool ca
    //std::cout << " Staring in iterativeMinimize and the minimum NLL so far is  " << minimumNLL << std::endl; 
    if ( fabs(minimumNLL - nll_.getVal()) > discreteMinTol_ ) { 
      improve(verbose,cascade);
-     //std::cout << " Had to improve further since tolerance is not yet reached   " << nll_.getVal() << std::endl; 
+     std::cout << " Had to improve further since tolerance is not yet reached   " << nll_.getVal() << std::endl; 
    }
 
    // First freeze all parameters that have nothing to do with the current active pdfs
@@ -363,7 +363,7 @@ bool CascadeMinimizer::iterativeMinimize(double &minimumNLL,int verbose, bool ca
    ret = improve(verbose, cascade); 
    minimumNLL = nll_.getVal();
 
-   tw.Stop(); if (verbose > 2) std::cout << "Done the full fit in " << tw.RealTime() << std::endl;
+   tw.Stop(); std::cout << "Done the full fit in " << tw.RealTime() << std::endl;
 
    // unfreeze from *
    freezeDiscParams(false);
@@ -373,6 +373,7 @@ bool CascadeMinimizer::iterativeMinimize(double &minimumNLL,int verbose, bool ca
 
 bool CascadeMinimizer::minimize(int verbose, bool cascade) 
 {
+    printf("Calling CascadeMinimizer::minimize\n");
     static int optConst = runtimedef::get("MINIMIZER_optimizeConst");
     static int rooFitOffset = runtimedef::get("MINIMIZER_rooFitOffset");
     if (runtimedef::get("CMIN_CENSURE")) {
@@ -414,6 +415,7 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
     
     bool ret = true;
     if (!doMultipleMini){
+      fprintf(CloseCoutSentry::trueStdOutGlobal(), " [TK] Entering \"if (!doMultipleMini){...}\" conditional \n");
     	if (mode_ == Unconstrained && poiOnlyFit_) {
        	 trivialMinimize(nll_, *poi_, 200);
     	} 
@@ -422,6 +424,7 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
 
     }else{
       // Do the discrete nuisance magic
+      printf("Do the discrete nuisance magic\n");
 
       // clean parameters before minimization but dont include the pdf indeces of course!
       RooArgSet reallyCleanParameters;
@@ -432,13 +435,16 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
       
       if (runShortCombinations) {
         // Initial fit under current index values
+        printf("Entering runShortCombinations\n");
         improve(verbose, cascade);
+        printf("Done with runShortCombinations\n");
         double backupApproxPreFitTolerance = approxPreFitTolerance_;
         approxPreFitTolerance_ = 0.;
 
         double minimumNLL  = nll_.getVal();
         double previousNLL = nll_.getVal();
-        int maxIterations = 15; int iterationCounter=0;
+        //int maxIterations = 15; int iterationCounter=0;
+        int maxIterations = 1; int iterationCounter=0;
         for (;iterationCounter<maxIterations;iterationCounter++){
           ret = iterativeMinimize(minimumNLL,verbose,cascade);
           if ( fabs(previousNLL-minimumNLL) < discreteMinTol_ ) break; // should be minimizer tolerance
@@ -484,6 +490,7 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
 }
 
 bool CascadeMinimizer::multipleMinimize(const RooArgSet &reallyCleanParameters, bool& ret, double& minimumNLL, int verbose, bool cascade,int mode, std::vector<std::vector<bool> >&contributingIndeces){
+    printf("Entering multipleMinimize\n");
     static bool freezeDisassParams = runtimedef::get(std::string("MINIMIZER_freezeDisassociatedParams"));
     static bool hideConstants = freezeDisassParams && runtimedef::get(std::string("MINIMIZER_multiMin_hideConstants"));
     static bool maskConstraints = freezeDisassParams && runtimedef::get(std::string("MINIMIZER_multiMin_maskConstraints"));
@@ -498,7 +505,7 @@ bool CascadeMinimizer::multipleMinimize(const RooArgSet &reallyCleanParameters, 
      Mode 2 -- Full scan over the remaining combinations after mode 1
     */
 
-    //std::cout << " At the start of the looping over the Indeces, minimum NLL is " << minimumNLL << std::endl; 
+    std::cout << " At the start of the looping over the Indeces, minimum NLL is " << minimumNLL << std::endl; 
     // If the barlow-beeston minimisation is being used we can disable it temporarily,
     // saves time if we don't have to call enable/disable on the CMSHistErrorPropagators
     // repeatedly for no purpose
@@ -873,6 +880,7 @@ void CascadeMinimizer::applyOptions(const boost::program_options::variables_map 
 
 
 void CascadeMinimizer::trivialMinimize(const RooAbsReal &nll, RooRealVar &r, int points) const {
+    printf("Calling trivial minimize for %s\n", r.GetName());
     double rMin = r.getMin(), rMax = r.getMax(), rStep = (rMax-rMin)/(points-1);
     int iMin = -1; double minnll = 0;
     for (int i = 0; i < points; ++i) {
