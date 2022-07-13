@@ -28,6 +28,7 @@ bool CascadeMinimizer::oldFallback_ = false;
 bool CascadeMinimizer::firstHesse_ = false;
 bool CascadeMinimizer::lastHesse_ = false;
 int  CascadeMinimizer::minuit2StorageLevel_ = 0;
+int CascadeMinimizer::maxIterations_ = 15;
 bool CascadeMinimizer::runShortCombinations = true;
 float CascadeMinimizer::nuisancePruningThreshold_ = 0;
 double CascadeMinimizer::discreteMinTol_ = 0.001;
@@ -443,9 +444,8 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
 
         double minimumNLL  = nll_.getVal();
         double previousNLL = nll_.getVal();
-        //int maxIterations = 15; int iterationCounter=0;
-        int maxIterations = 1; int iterationCounter=0;
-        for (;iterationCounter<maxIterations;iterationCounter++){
+        int iterationCounter=0;
+        for (;iterationCounter<maxIterations_;iterationCounter++){
           ret = iterativeMinimize(minimumNLL,verbose,cascade);
           if ( fabs(previousNLL-minimumNLL) < discreteMinTol_ ) break; // should be minimizer tolerance
           previousNLL = minimumNLL ;
@@ -747,6 +747,7 @@ void CascadeMinimizer::initOptions()
         ("cminRunAllDiscreteCombinations",  "Run all combinations for discrete nuisances")
         ("cminDiscreteMinTol", boost::program_options::value<double>(&discreteMinTol_)->default_value(discreteMinTol_), "tolerance on min NLL for discrete combination iterations")
         ("cminM2StorageLevel", boost::program_options::value<int>(&minuit2StorageLevel_)->default_value(minuit2StorageLevel_), "storage level for minuit2 (0 = don't store intermediate covariances, 1 = store them)")
+        ("cminMaxIterations", boost::program_options::value<int>(&maxIterations_)->default_value(maxIterations_), "Maximum number of iterations")
         //("cminNuisancePruning", boost::program_options::value<float>(&nuisancePruningThreshold_)->default_value(nuisancePruningThreshold_), "if non-zero, discard constrained nuisances whose effect on the NLL when changing by 0.2*range is less than the absolute value of the threshold; if threshold is negative, repeat afterwards the fit with these floating")
 
         //("cminDefaultIntegratorEpsAbs", boost::program_options::value<double>(), "RooAbsReal::defaultIntegratorConfig()->setEpsAbs(x)")

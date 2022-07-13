@@ -96,6 +96,8 @@ class CascadeMinimizer {
         static bool firstHesse_, lastHesse_;
         /// storage level for minuit2 (toggles storing of intermediate covariances)
         static int minuit2StorageLevel_;
+        /// maxIterations
+        static int maxIterations_;
 
 	static double discreteMinTol_;
 
