@@ -321,7 +321,8 @@ bool CascadeMinimizer::iterativeMinimize(double &minimumNLL,int verbose, bool ca
    */
 
    //std::cout << " Staring in iterativeMinimize and the minimum NLL so far is  " << minimumNLL << std::endl; 
-   if ( fabs(minimumNLL - nll_.getVal()) > discreteMinTol_ ) { 
+    double diff = fabs(minimumNLL - nll_.getVal()) / fabs(minimumNLL);
+   if ( diff > discreteMinTol_ ) { 
      improve(verbose,cascade);
      //std::cout << " Had to improve further since tolerance is not yet reached   " << nll_.getVal() << std::endl; 
    }
@@ -442,7 +443,9 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
         int iterationCounter=0;
         for (;iterationCounter<maxIterations_;iterationCounter++){
           ret = iterativeMinimize(minimumNLL,verbose,cascade);
-          if ( fabs(previousNLL-minimumNLL) < discreteMinTol_ ) break; // should be minimizer tolerance
+          double diff = fabs(previousNLL-minimumNLL) / fabs(previousNLL);
+          printf("  Iteration %d: NLL = %g, diff = %g\n",iterationCounter,minimumNLL,diff);
+          if ( diff < discreteMinTol_ ) break; // should be minimizer tolerance
           previousNLL = minimumNLL ;
         }
         approxPreFitTolerance_ = backupApproxPreFitTolerance;
@@ -739,7 +742,7 @@ void CascadeMinimizer::initOptions()
 	("cminDefaultMinimizerPrecision",boost::program_options::value<double>(&defaultMinimizerPrecision_)->default_value(defaultMinimizerPrecision_), "Set the default minimizer precision")
 	("cminDefaultMinimizerStrategy",boost::program_options::value<int>(&strategy_)->default_value(strategy_), "Set the default minimizer (initial) strategy")
         ("cminRunAllDiscreteCombinations",  "Run all combinations for discrete nuisances")
-        ("cminDiscreteMinTol", boost::program_options::value<double>(&discreteMinTol_)->default_value(discreteMinTol_), "tolerance on min NLL for discrete combination iterations")
+        ("cminDiscreteMinTol", boost::program_options::value<double>(&discreteMinTol_)->default_value(discreteMinTol_), "tolerance on min NLL for discrete combination iterations (in relative terms)")
         ("cminM2StorageLevel", boost::program_options::value<int>(&minuit2StorageLevel_)->default_value(minuit2StorageLevel_), "storage level for minuit2 (0 = don't store intermediate covariances, 1 = store them)")
         ("cminMaxIterations", boost::program_options::value<int>(&maxIterations_)->default_value(maxIterations_), "Maximum number of iterations")
         //("cminNuisancePruning", boost::program_options::value<float>(&nuisancePruningThreshold_)->default_value(nuisancePruningThreshold_), "if non-zero, discard constrained nuisances whose effect on the NLL when changing by 0.2*range is less than the absolute value of the threshold; if threshold is negative, repeat afterwards the fit with these floating")
