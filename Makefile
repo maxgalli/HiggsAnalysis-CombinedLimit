@@ -15,11 +15,11 @@
 #######################################################################
 
 # Boost
-BOOST = /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/boost/1.72.0-gchjei
-VDT   = /cvmfs/cms.cern.ch/slc7_amd64_gcc820/cms/vdt/0.4.0-ghbfee
-PCRE = /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/pcre/8.43-bcolbf
-GSL = /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/gsl/2.6-bcolbf3
-EIGEN = /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/eigen/d812f411c3f9-ghbfee
+BOOST = /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/boost/1.78.0-eff317ca059d54599392d372d1db7d2c
+VDT   = /cvmfs/cms.cern.ch/slc7_amd64_gcc11/cms/vdt/0.4.3-dc6895ef6df761469e5fc0b7c8fb16f2
+PCRE = /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/pcre/8.43-e6b3d6f8e1424033990367f0ae94d8f3
+GSL = /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/gsl/2.6-d7bd41b88eedf532228a8a46aa0a0823
+EIGEN = /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/eigen/82dd3710dac619448f50331c1d6a35da673f764a-d3739f2af83093e17d576e3528b12543
 # Compiler and flags -----------------------------------------------------------
 CC = c++
 ROOTCFLAGS = $(shell root-config --cflags)
@@ -28,8 +28,8 @@ ROOTINC = $(shell root-config --incdir)
 
 # CCFLAGS = -D STANDALONE $(ROOTCFLAGS) -I$(BOOST)/include -I$(VDT)/include -I$(PCRE)/include -I$(GSL)/include -I$(LIBXML)/include/libxml2 -I$(XZ)/include -I$(ZLIB)/include -g -fPIC
 # CMSSW CXXFLAGS plus -Wno-unused-local-typedefs (otherwise we get a flood of messages from BOOST) plus -Wno-unused-function
-CCFLAGS = -D STANDALONE $(ROOTCFLAGS) -g -fPIC -O2 -pthread -pipe -Werror=main -Werror=pointer-arith -Werror=overlength-strings -Wno-vla -Werror=overflow -std=c++1z -ftree-vectorize -Wstrict-overflow -Werror=array-bounds -Werror=format-contains-nul -Werror=type-limits -fvisibility-inlines-hidden -fno-math-errno --param vect-max-version-for-alias-checks=50 -Xassembler --compress-debug-sections -msse3 -felide-constructors -fmessage-length=0 -Wall -Wno-non-template-friend -Wno-long-long -Wreturn-type -Wunused -Wparentheses -Wno-deprecated -Werror=return-type -Werror=missing-braces -Werror=unused-value -Werror=address -Werror=format -Werror=sign-compare -Werror=write-strings -Werror=delete-non-virtual-dtor -Werror=strict-aliasing -Werror=narrowing -Werror=unused-but-set-variable -Werror=reorder -Werror=unused-variable -Werror=conversion-null -Werror=return-local-addr -Wnon-virtual-dtor -Werror=switch -fdiagnostics-show-option -Wno-unused-local-typedefs -Wno-attributes -Wno-psabi -Wno-error=unused-variable -DBOOST_DISABLE_ASSERTS -DGNU_GCC -D_GNU_SOURCE -DBOOST_SPIRIT_THREADSAFE -DPHOENIX_THREADSAFE
-LIBS = $(ROOTLIBS) -lgsl -l RooFit -lRooFitCore -l RooStats -l Minuit -lMathMore -l Foam -lHistFactory -lboost_filesystem -lboost_program_options -lboost_system -lvdt
+CCFLAGS = -D STANDALONE $(ROOTCFLAGS) -g -fPIC -O2 -pthread -pipe -Werror=main -Werror=pointer-arith -Werror=overlength-strings -Wno-vla -Werror=overflow -std=c++17 -ftree-vectorize -Wstrict-overflow -Werror=array-bounds -Werror=format-contains-nul -Werror=type-limits -fvisibility-inlines-hidden -fno-math-errno --param vect-max-version-for-alias-checks=50 -Xassembler --compress-debug-sections -msse3 -felide-constructors -fmessage-length=0 -Wall -Wno-non-template-friend -Wno-long-long -Wreturn-type -Wunused -Wparentheses -Wno-deprecated -Werror=return-type -Werror=missing-braces -Werror=unused-value -Werror=address -Werror=format -Wno-nonnull -fpermissive -Werror=sign-compare -Werror=write-strings -Werror=delete-non-virtual-dtor -Werror=strict-aliasing -Werror=narrowing -Werror=unused-but-set-variable -Werror=reorder -Werror=unused-variable -Werror=conversion-null -Werror=return-local-addr -Wnon-virtual-dtor -Werror=switch -fdiagnostics-show-option -Wno-unused-local-typedefs -Wno-attributes -Wno-psabi -Wno-error=unused-variable -DBOOST_DISABLE_ASSERTS -DGNU_GCC -D_GNU_SOURCE -DBOOST_SPIRIT_THREADSAFE -DPHOENIX_THREADSAFE
+LIBS = $(ROOTLIBS) -lRooFit -lRooFitCore -lRooStats -lMinuit -lCore -lMathMore -lFoam -lHistFactory -lboost_filesystem -lboost_program_options -lboost_system -lvdt
 
 ifeq ($(CONDA), 1)
 CCFLAGS += -I${CONDA_PREFIX}/include/boost -I ${CONDA_PREFIX}/include/vdt -I ${CONDA_PREFIX}/include/gsl -I ${CONDA_PREFIX}/include/eigen3 
@@ -91,7 +91,7 @@ dirs:
 dict: dirs $(OBJ_DIR)/a/$(DICTNAME).cc
 $(OBJ_DIR)/a/$(DICTNAME).cc : $(SRC_DIR)/classes_def.xml
 # 	@echo "\n*** Generating dictionaries ..."
-	genreflex $(SRC_DIR)/classes.h -s $(SRC_DIR)/classes_def.xml -o $(OBJ_DIR)/a/$(DICTNAME).cc --deep --fail_on_warnings --rootmap=$(OBJ_DIR)/a/$(DICTNAME).rootmap --rootmap-lib=$(SONAME) -I$(PARENT_DIR) 
+	genreflex $(SRC_DIR)/classes.h -s $(SRC_DIR)/classes_def.xml -o $(OBJ_DIR)/a/$(DICTNAME).cc --deep --fail_on_warnings --rootmap=$(OBJ_DIR)/a/$(DICTNAME).rootmap --rootmap-lib=$(SONAME) -I$(PARENT_DIR) -I$(ROOTINC)
 	mv $(OBJ_DIR)/a/$(DICTNAME).rootmap $(LIB_DIR)/
 	mv $(OBJ_DIR)/a/$(DICTNAME)_rdict.pcm $(LIB_DIR)/
 

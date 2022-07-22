@@ -1,11 +1,11 @@
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/gcc/8.2.0-bcolbf/etc/profile.d/init.sh
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/lcg/root/6.22.00/bin/thisroot.sh
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/gsl/2.6-bcolbf3/etc/profile.d/init.sh
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/tbb/2020_U2-ghbfee/etc/profile.d/init.sh
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/cms/vdt/0.4.0-ghbfee/etc/profile.d/init.sh
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/boost/1.72.0-gchjei/etc/profile.d/init.sh
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/pcre/8.43-bcolbf/etc/profile.d/init.sh
- . /cvmfs/cms.cern.ch/slc7_amd64_gcc820/external/eigen/d812f411c3f9-ghbfee/etc/profile.d/init.sh
- export PATH=${PATH}:${PWD}/exe:${PWD}/scripts
- export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PWD}/lib
- export PYTHONPATH=${PYTHONPATH}:${PWD}/lib/python:${PWD}/lib
+source /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/boost/1.78.0-eff317ca059d54599392d372d1db7d2c/etc/profile.d/init.sh
+source /work/gallim/ROOTCombine/build_lateststable/bin/thisroot.sh
+#source /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/gsl/2.6-d7bd41b88eedf532228a8a46aa0a0823/etc/profile.d/init.sh
+#source /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/tbb/v2021.5.0-9cee443edc603791565ef91dfd9ef546/etc/profile.d/init.sh
+source /cvmfs/cms.cern.ch/slc7_amd64_gcc11/cms/vdt/0.4.3-dc6895ef6df761469e5fc0b7c8fb16f2/etc/profile.d/init.sh
+source /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/boost/1.78.0-eff317ca059d54599392d372d1db7d2c/etc/profile.d/init.sh
+source /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/pcre/8.43-e6b3d6f8e1424033990367f0ae94d8f3/etc/profile.d/init.sh
+source /cvmfs/cms.cern.ch/slc7_amd64_gcc11/external/eigen/82dd3710dac619448f50331c1d6a35da673f764a-d3739f2af83093e17d576e3528b12543/etc/profile.d/init.sh
+export PATH=${PATH}:${PWD}/exe:${PWD}/scripts
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PWD}/lib
+export PYTHONPATH=${PYTHONPATH}:${PWD}/lib/python:${PWD}/lib
