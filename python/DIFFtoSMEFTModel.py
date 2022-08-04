@@ -66,6 +66,10 @@ class DIFFtoSMEFTModel(PhysicsModel):
             if po == "linear_only":
                 self.linear_only = True
 
+            if po.startswith("config_file="):
+                self.config_file = po.replace("config_file=", "")
+                print "config_file:", self.config_file
+
 
     def doParametersOfInterest(self):
         # set mass
@@ -77,7 +81,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
             self.modelBuilder.doVar("MH[%g]" % self.higgs_mass)
 
         # read the yaml file for POIs
-        with open("{}/pois.yml".format(self.input_dir), "r") as f:
+        with open(self.config_file, "r") as f:
             self.pois_info = yaml.safe_load(f)
 
         # set Wilson coefficients
