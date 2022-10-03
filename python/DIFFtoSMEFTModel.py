@@ -118,7 +118,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
 
         # First add the decay widths scaling function (partial and total are in the same file)
         # tot before everything else since BR construcion depends on it
-        self.make_scaling_function("tot", decay_terms)
+        self.make_scaling_function("tot", decay_terms["tot"])
 
         for mode in decay_terms:
             if mode != "tot" and mode in decay_file_conversions:
