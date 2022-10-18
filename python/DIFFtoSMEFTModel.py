@@ -12,11 +12,24 @@ import os
 edges = {
     "hgg": { # see https://github.com/maxgalli/EFT2Obs/blob/WithHiggsDecay/RivetPlugins/Higgs2GGFiducialAndDifferential.cc
         "pt": [0.0 ,5.0 , 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 45.0, 60.0, 80.0, 100.0, 120.0, 140.0, 170.0, 200.0, 250.0, 350.0, 450.0, 10000.0]
-    }
+    },
+    "hzz": {
+        "pt": [0.0, 10.0, 20.0, 30.0, 45.0, 60.0, 80.0, 120.0, 200.0, 10000.0]
+    },
+    "hww": {
+        "pt": [0.0, 30.0, 45.0, 80.0, 120.0, 200.0, 10000.0]
+    },
+    "htt": {
+        "pt": [0.0, 45.0, 80.0, 120.0, 140.0, 170.0, 200.0, 350.0, 450.0, 10000.0]
+    },
 }
 
 decay_file_conversions = {
-    "gamgam": "hgg"
+    "gamgam": "hgg",
+    "ZZ": "hzz",
+    "WW": "hww",
+    "tautau": "htt",
+    "bb": "hbb",
 }
 
 
@@ -108,10 +121,17 @@ class DIFFtoSMEFTModel(PhysicsModel):
         production_terms = {}
         for decay_channel_dir in os.listdir(os.path.join(self.input_dir, "differentials")):
             production_terms[decay_channel_dir] = {}
-            with open(os.path.join(self.input_dir, "differentials", decay_channel_dir, "ggH_SMEFTatNLO_pt_gg.json"), "r") as f:
+            full_path_to_ggF_json = os.path.join(self.input_dir, "differentials", decay_channel_dir, "ggH_SMEFTatNLO_pt_h.json")
+            if decay_channel_dir == "hgg":
+                full_path_to_ggF_json = os.path.join(self.input_dir, "differentials", decay_channel_dir, "ggH_SMEFTatNLO_pt_gg.json")
+            with open(full_path_to_ggF_json, "r") as f:
                 tmp_dct = json.load(f)
                 for edge, next_edge in zip(edges[decay_channel_dir]['pt'][:-1], edges[decay_channel_dir]['pt'][1:]):
-                    production_terms[decay_channel_dir]["{}_{}".format(str(edge).replace(".", "p"), str(next_edge).replace(".", "p"))] = tmp_dct[str(edge)]
+                    try:
+                        production_terms[decay_channel_dir]["{}_{}".format(str(edge).replace(".", "p"), str(next_edge).replace(".", "p"))] = tmp_dct[str(edge)]
+                    except KeyError:
+                        print("WARNING: No differential cross section for {}-{} GeV in decay channel {}".format(edge, next_edge, decay_channel_dir))
+                        pass
 
         with open("{}/decay.json".format(self.input_dir), "r") as f:
             decay_terms = json.load(f)
@@ -130,15 +150,10 @@ class DIFFtoSMEFTModel(PhysicsModel):
                 self.modelBuilder.factory_('expr::scaling_BR_{}("@0/@1", scaling_partial_{}, scaling_tot)'.format(mode_conv_name, mode_conv_name))
         
         # Now production (a bit more complicated)
-        self.full_scaling_names = []
-        self.channels = []
-        self.bin_ranges = []
+        self.full_scaling_names = {}
         for production_mode in production_terms: # e.g. hgg
-            if production_mode not in self.channels:
-                self.channels.append(production_mode)
+            self.full_scaling_names[production_mode] = {}
             for bin_range in production_terms[production_mode]: # e.g. 0p0_5p0
-                if bin_range not in self.bin_ranges:
-                    self.bin_ranges.append(bin_range)
                 name = "{}_{}".format(production_mode, bin_range)
                 self.make_scaling_function(name, production_terms[production_mode][bin_range])
 
@@ -147,22 +162,30 @@ class DIFFtoSMEFTModel(PhysicsModel):
                 print("Making scaling function {}".format(full_scaling_name))
                 self.modelBuilder.factory_("prod::{}({})".format(full_scaling_name, ",".join(["scaling_{}".format(name), "scaling_BR_{}".format(production_mode)])))
                 #self.modelBuilder.factory_('expr::{}("@0*@1", scaling_{}, scaling_BR_{})'.format(full_scaling_name, name, production_mode))
-                self.full_scaling_names.append(full_scaling_name)
-
+                self.full_scaling_names[production_mode][bin_range] = full_scaling_name
+        
+        print("Full scaling names:")
+        print(self.full_scaling_names)
 
     def getYieldScale(self, bin, process):
         print("getYieldScale: bin={}, process={}".format(bin, process))
         if self.DC.isSignal[process] and process != "OutsideAcceptance":
-            # Process name contains the bin range, e.g. 0p0_5p0
-            bin_range = [bnr for bnr in self.bin_ranges if bnr in process][0]
-            # Bin name contains the decay mode, e.g. hgg
-            production_mode = [chn for chn in self.channels if chn in bin][0]
-
-            full_scaling_function = [f for f in self.full_scaling_names if "{}_{}".format(production_mode, bin_range) in f][0]
-            print("Scaling process {} in bin {} with function {}".format(process, bin, full_scaling_function))
-            
-            return full_scaling_function
-        
+            try:
+                # Bin name contains the decay mode, e.g. hgg
+                production_mode = [chn for chn in list(self.full_scaling_names.keys()) if chn in bin][0]
+                # Process name contains the bin range, e.g. 0p0_5p0
+                if "GT200" in process:
+                    bin_range = "200p0_10000p0"
+                elif "GT450" in process:
+                    bin_range = "450p0_10000p0"
+                else:
+                    bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr in process][0]
+                full_scaling_function = self.full_scaling_names[production_mode][bin_range]
+                print("Scaling process {} in bin {} with function {}".format(process, bin, full_scaling_function))
+                return full_scaling_function
+            except KeyError:
+                print("WARNING: No scaling function for process {} in bin {}, will scale with 1".format(process, bin))
+                return 1
         return 1
 
 
