@@ -174,16 +174,28 @@ class DIFFtoSMEFTModel(PhysicsModel):
                 # Bin name contains the decay mode, e.g. hgg
                 production_mode = [chn for chn in list(self.full_scaling_names.keys()) if chn in bin][0]
                 # Process name contains the bin range, e.g. 0p0_5p0
-                if "GT200" in process:
-                    bin_range = "200p0_10000p0"
-                elif "GT450" in process:
-                    bin_range = "450p0_10000p0"
+
+                # Since Htt and HWW do not have p0 after the edge number
+                if production_mode in ["htt", "hww"]:
+                    if "GT450" in process: # Htt
+                        bin_range = "450p0_10000p0" 
+                    elif "GT200" in process: # HWW
+                        bin_range = "200p0_10000p0"
+                    else:
+                        bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr.replace('p0', '') in process][0]
                 else:
-                    bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr in process][0]
+                    # Because of convention not respected in HZZ
+                    if "GT200" in process:
+                        bin_range = "200p0_10000p0"
+                    elif "GT450" in process:
+                        bin_range = "450p0_10000p0"
+                    else:
+                        bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr in process][0]
                 full_scaling_function = self.full_scaling_names[production_mode][bin_range]
                 print("Scaling process {} in bin {} with function {}".format(process, bin, full_scaling_function))
                 return full_scaling_function
-            except KeyError:
+            except (KeyError, IndexError) as e:
+                print(e)
                 print("WARNING: No scaling function for process {} in bin {}, will scale with 1".format(process, bin))
                 return 1
         return 1
