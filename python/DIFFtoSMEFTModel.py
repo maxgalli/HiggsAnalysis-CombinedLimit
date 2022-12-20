@@ -22,26 +22,74 @@ edges = {
     "htt": {
         "pt": [0.0, 45.0, 80.0, 120.0, 140.0, 170.0, 200.0, 350.0, 450.0, 10000.0]
     },
+    "hbbvbf": {
+        #"pt": [0.0, 450.0, 500.0, 550.0, 600.0, 675.0, 800.0, 1200.0]
+        "pt": [0.0, 450.0, 500.0, 550.0, 600.0, 675.0, 800.0] # since we do not have prediction in last bin
+    },
+    "httboost": {
+        "pt": [450.0, 600.0, 10000.0]
+    },
 }
 
 decay_file_conversions = {
-    "gamgam": "hgg",
-    "ZZ": "hzz",
-    "WW": "hww",
-    "tautau": "htt",
-    "bb": "hbb",
+    "gamgam": ["hgg"],
+    "ZZ": ["hzz"],
+    "WW": ["hww"],
+    "tautau": ["htt", "httboost"],
+    "bb": ["hbbvbf"],
+}
+
+max_to_matt = {
+    "hgg": "gamgam",
+    "hzz": "ZZ",
+    "hww": "WW",
+    "htt": "tautau",
+    "httboost": "tautau",
+    "hbbvbf": "bb"
 }
 
 
 class DIFFtoSMEFTModel(PhysicsModel):
     def __init__(self):
         self.higgs_mass = 125.38
+        self.higgs_mass_inf = 123.0
+        self.higgs_mass_sup = 127.0
+        self.constant_mass = False
         self.linear_only = False
+        self.linearised = False
         super(DIFFtoSMEFTModel, self).__init__()
 
 
+    def local_RooEFTScalingFunction(self, name, title, std_map, terms):
+        expr = "1.0"
+        for i, coeff in enumerate(std_map):
+            expr += "+{}*@{}".format(coeff.second, i)
+        print(expr)
+        return ROOT.RooFormulaVar(name, title, expr, terms)
+
+
+    def make_linearised_function(self, name, prod_terms, decay_terms, tot_terms, pois):
+        expr = "1.0"
+        for i, jpoi_name in enumerate(self.pois_info.keys()):
+            if "A_{}".format(jpoi_name) in prod_terms:
+                expr += "+{}*@{}".format(prod_terms["A_{}".format(jpoi_name)], i)
+            else:
+                expr += "+0.0@{}".format(i)
+            if "A_{}".format(jpoi_name) in decay_terms:
+                expr += "+{}*@{}".format(decay_terms["A_{}".format(jpoi_name)], i)
+            else:
+                expr += "+0.0@{}".format(i)
+            if "A_{}".format(jpoi_name) in tot_terms:
+                expr += "-{}*@{}".format(tot_terms["A_{}".format(jpoi_name)], i)
+            else:
+                expr += "-0.0@{}".format(i)
+        print("Making {}".format(name))
+        print(expr)
+        return ROOT.RooFormulaVar(name, name, expr, pois)
+
     def make_scaling_function(self, name, terms):
         coeffs = ROOT.std.map("string", "double")()
+        print("linear only: {}".format(self.linear_only))
         for jpoi_name in self.pois_info.keys():
             if "A_{}".format(jpoi_name) in terms: 
                 coeffs[jpoi_name] = terms["A_{}".format(jpoi_name)]
@@ -55,11 +103,14 @@ class DIFFtoSMEFTModel(PhysicsModel):
         
         roo_name = "scaling_{}".format(name)
         print("Making scaling function {}".format(roo_name))
+        #print("Coeffs: {}".format(coeffs))
+        #print("POIs: {}".format(self.POIs))
         eft_scaling = ROOT.RooEFTScalingFunction(roo_name, roo_name, coeffs, self.POIs)
+        #eft_scaling = self.local_RooEFTScalingFunction(roo_name, roo_name, coeffs, self.POIs)
 
         # sanity check
-        #for coeff in coeffs:
-            #print("{} = {}".format(coeff.first, coeff.second))
+        for coeff in coeffs:
+            print("{} = {}".format(coeff.first, coeff.second))
 
         self.modelBuilder.out._import(eft_scaling)
     
@@ -79,23 +130,45 @@ class DIFFtoSMEFTModel(PhysicsModel):
             if po == "linear_only":
                 self.linear_only = True
 
+            if po == "linearised":
+                self.linearised = True
+
+            if self.linearised and self.linear_only:
+                raise RuntimeError("Cannot specify linearised and linear_only at the same time!")
+
             if po.startswith("config_file="):
                 self.config_file = po.replace("config_file=", "")
                 print "config_file:", self.config_file
 
+            if po == "constant_mass":
+                self.constant_mass = True
+
+
+    def doMH(self):
+        if self.constant_mass:
+            print "mass will be set constant to {}".format(self.higgs_mass)
+            if self.modelBuilder.out.var("MH"):
+                self.modelBuilder.out.var("MH").setVal(self.higgs_mass)
+                self.modelBuilder.out.var("MH").setConstant(True)
+            else:
+                self.modelBuilder.doVar("MH[%g]" % self.higgs_mass)
+        else:
+            print "mass will be left floating between {} and {}".format(self.higgs_mass_inf, self.higgs_mass_sup)
+            if self.modelBuilder.out.var("MH"):
+                self.modelBuilder.out.var("MH").setRange(self.higgs_mass_inf, self.higgs_mass_sup)
+                self.modelBuilder.out.var("MH").setConstant(False)
+            else:
+                self.modelBuilder.doVar("MH[%s,%s]" % (self.higgs_mass_inf, self.higgs_mass_sup)) 
+
 
     def doParametersOfInterest(self):
         # set mass
-        # no idea why we need to do this if-else
-        if self.modelBuilder.out.var("MH"):
-            self.modelBuilder.out.var("MH").setVal(self.higgs_mass)
-            self.modelBuilder.out.var("MH").setConstant(True)
-        else:
-            self.modelBuilder.doVar("MH[%g]" % self.higgs_mass)
+        self.doMH()
 
         # read the yaml file for POIs
         with open(self.config_file, "r") as f:
             self.pois_info = yaml.safe_load(f)
+        print("self.pois_info: {}".format(self.pois_info))
 
         # set Wilson coefficients
         poi_names = []
@@ -103,6 +176,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
             poi_names.append(name)
             self.modelBuilder.doVar("%s[%g,%g,%g]"%(name, info['val'], info['min'], info['max']))
             self.modelBuilder.out.var(name).setConstant(True)
+        print("poi_names {}".format(poi_names))
         
         self.modelBuilder.doSet("POI", ",".join(poi_names))
         self.POIs = ROOT.RooArgList(self.modelBuilder.out.set("POI"))
@@ -136,33 +210,44 @@ class DIFFtoSMEFTModel(PhysicsModel):
         with open("{}/decay.json".format(self.input_dir), "r") as f:
             decay_terms = json.load(f)
 
-        # First add the decay widths scaling function (partial and total are in the same file)
-        # tot before everything else since BR construcion depends on it
-        self.make_scaling_function("tot", decay_terms["tot"])
-
-        for mode in decay_terms:
-            if mode != "tot" and mode in decay_file_conversions:
-                mode_conv_name = decay_file_conversions[mode]
-                self.make_scaling_function("partial_{}".format(mode_conv_name), decay_terms[mode])
-                
-                # And we make the BR by making the ratio with scaling_tot
-                print("Making scaling function scaling_BR_{}".format(mode_conv_name))
-                self.modelBuilder.factory_('expr::scaling_BR_{}("@0/@1", scaling_partial_{}, scaling_tot)'.format(mode_conv_name, mode_conv_name))
-        
-        # Now production (a bit more complicated)
         self.full_scaling_names = {}
-        for production_mode in production_terms: # e.g. hgg
-            self.full_scaling_names[production_mode] = {}
-            for bin_range in production_terms[production_mode]: # e.g. 0p0_5p0
-                name = "{}_{}".format(production_mode, bin_range)
-                self.make_scaling_function(name, production_terms[production_mode][bin_range])
+        
+        if self.linearised:
+            for production_mode in production_terms: # e.g. hgg
+                self.full_scaling_names[production_mode] = {}
+                for bin_range in production_terms[production_mode]: # e.g. 0p0_5p0
+                    name = "full_scaling_{}_{}".format(production_mode, bin_range)
+                    eq = self.make_linearised_function(name, production_terms[production_mode][bin_range], decay_terms[max_to_matt[production_mode]], decay_terms["tot"], self.POIs)
+                    self.modelBuilder.out._import(eq)
+                    self.full_scaling_names[production_mode][bin_range] = name
+        else:
+            # First add the decay widths scaling function (partial and total are in the same file)
+            # tot before everything else since BR construcion depends on it
+            self.make_scaling_function("tot", decay_terms["tot"])
 
-                # And we make the full mu by multiplying the partial mu with the BR
-                full_scaling_name = "full_scaling_{}_{}".format(production_mode, bin_range)
-                print("Making scaling function {}".format(full_scaling_name))
-                self.modelBuilder.factory_("prod::{}({})".format(full_scaling_name, ",".join(["scaling_{}".format(name), "scaling_BR_{}".format(production_mode)])))
-                #self.modelBuilder.factory_('expr::{}("@0*@1", scaling_{}, scaling_BR_{})'.format(full_scaling_name, name, production_mode))
-                self.full_scaling_names[production_mode][bin_range] = full_scaling_name
+            for mode in decay_terms:
+                if mode != "tot" and mode in decay_file_conversions:
+                    # for the case in which we have multiple analyses in the same decay channel
+                    for mode_conv_name in decay_file_conversions[mode]:
+                        self.make_scaling_function("partial_{}".format(mode_conv_name), decay_terms[mode])
+                        
+                        # And we make the BR by making the ratio with scaling_tot
+                        print("Making scaling function scaling_BR_{}".format(mode_conv_name))
+                        self.modelBuilder.factory_('expr::scaling_BR_{}("@0/@1", scaling_partial_{}, scaling_tot)'.format(mode_conv_name, mode_conv_name))
+            
+            # Now production (a bit more complicated)
+            for production_mode in production_terms: # e.g. hgg
+                self.full_scaling_names[production_mode] = {}
+                for bin_range in production_terms[production_mode]: # e.g. 0p0_5p0
+                    name = "{}_{}".format(production_mode, bin_range)
+                    self.make_scaling_function(name, production_terms[production_mode][bin_range])
+
+                    # And we make the full mu by multiplying the partial mu with the BR
+                    full_scaling_name = "full_scaling_{}_{}".format(production_mode, bin_range)
+                    print("Making scaling function {}".format(full_scaling_name))
+                    self.modelBuilder.factory_("prod::{}({})".format(full_scaling_name, ",".join(["scaling_{}".format(name), "scaling_BR_{}".format(production_mode)])))
+                    #self.modelBuilder.factory_('expr::{}("@0*@1", scaling_{}, scaling_BR_{})'.format(full_scaling_name, name, production_mode))
+                    self.full_scaling_names[production_mode][bin_range] = full_scaling_name
         
         print("Full scaling names:")
         print(self.full_scaling_names)
@@ -170,13 +255,14 @@ class DIFFtoSMEFTModel(PhysicsModel):
     def getYieldScale(self, bin, process):
         print("getYieldScale: bin={}, process={}".format(bin, process))
         if self.DC.isSignal[process] and process != "OutsideAcceptance":
+        #if self.DC.isSignal[process] and process in ["smH_PTH_30p0_35p0"]:
             try:
                 # Bin name contains the decay mode, e.g. hgg
                 production_mode = [chn for chn in list(self.full_scaling_names.keys()) if chn in bin][0]
                 # Process name contains the bin range, e.g. 0p0_5p0
 
                 # Since Htt and HWW do not have p0 after the edge number
-                if production_mode in ["htt", "hww"]:
+                if production_mode in ["htt", "hww", "hbbvbf", "httboost"]:
                     if "GT450" in process: # Htt
                         bin_range = "450p0_10000p0" 
                     elif "GT200" in process: # HWW
