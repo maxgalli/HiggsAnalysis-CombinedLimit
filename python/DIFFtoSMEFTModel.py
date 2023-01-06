@@ -74,15 +74,15 @@ class DIFFtoSMEFTModel(PhysicsModel):
             if "A_{}".format(jpoi_name) in prod_terms:
                 expr += "+{}*@{}".format(prod_terms["A_{}".format(jpoi_name)], i)
             else:
-                expr += "+0.0@{}".format(i)
+                expr += "+0.0*@{}".format(i)
             if "A_{}".format(jpoi_name) in decay_terms:
                 expr += "+{}*@{}".format(decay_terms["A_{}".format(jpoi_name)], i)
             else:
-                expr += "+0.0@{}".format(i)
+                expr += "+0.0*@{}".format(i)
             if "A_{}".format(jpoi_name) in tot_terms:
                 expr += "-{}*@{}".format(tot_terms["A_{}".format(jpoi_name)], i)
             else:
-                expr += "-0.0@{}".format(i)
+                expr += "-0.0*@{}".format(i)
         print("Making {}".format(name))
         print(expr)
         return ROOT.RooFormulaVar(name, name, expr, pois)
