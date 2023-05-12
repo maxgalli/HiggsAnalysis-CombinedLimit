@@ -10,25 +10,20 @@ import json
 import os
 
 edges = {
-    "hgg": { # see https://github.com/maxgalli/EFT2Obs/blob/WithHiggsDecay/RivetPlugins/Higgs2GGFiducialAndDifferential.cc
-        "pt": [0.0 ,5.0 , 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 45.0, 60.0, 80.0, 100.0, 120.0, 140.0, 170.0, 200.0, 250.0, 350.0, 450.0, 10000.0]
+    "smH_PTH": {
+        "hgg": [0.0 ,5.0 , 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 45.0, 60.0, 80.0, 100.0, 120.0, 140.0, 170.0, 200.0, 250.0, 350.0, 450.0, 10000.0],
+        "hzz": [0.0, 10.0, 20.0, 30.0, 45.0, 60.0, 80.0, 120.0, 200.0, 10000.0],
+        "hww": [0.0, 30.0, 45.0, 80.0, 120.0, 200.0, 10000.0],
+        "htt": [0.0, 45.0, 80.0, 120.0, 140.0, 170.0, 200.0, 350.0, 450.0, 10000.0],
+        "hbbvbf": [0.0, 450.0, 500.0, 550.0, 600.0, 675.0, 800.0], # since we do not have prediction in last bin
+        "httboost": [450.0, 600.0, 10000.0],
     },
-    "hzz": {
-        "pt": [0.0, 10.0, 20.0, 30.0, 45.0, 60.0, 80.0, 120.0, 200.0, 10000.0]
-    },
-    "hww": {
-        "pt": [0.0, 30.0, 45.0, 80.0, 120.0, 200.0, 10000.0]
-    },
-    "htt": {
-        "pt": [0.0, 45.0, 80.0, 120.0, 140.0, 170.0, 200.0, 350.0, 450.0, 10000.0]
-    },
-    "hbbvbf": {
-        #"pt": [0.0, 450.0, 500.0, 550.0, 600.0, 675.0, 800.0, 1200.0]
-        "pt": [0.0, 450.0, 500.0, 550.0, 600.0, 675.0, 800.0] # since we do not have prediction in last bin
-    },
-    "httboost": {
-        "pt": [450.0, 600.0, 10000.0]
-    },
+    "Njets": {
+        "hgg": [-0.5, 0.5, 1.5, 2.5, 3.5, 100.5],
+        "hzz": [-0.5, 0.5, 1.5, 2.5, 3.5, 100.5],
+        "hww": [-0.5, 0.5, 1.5, 2.5, 3.5, 100.5],
+        "htt": [-0.5, 0.5, 1.5, 2.5, 3.5, 100.5],
+    }
 }
 
 decay_file_conversions = {
@@ -48,6 +43,22 @@ max_to_matt = {
     "hbbvbf": "bb"
 }
 
+ggH_production_files = {
+    "smH_PTH": {
+        "hgg": "ggH_SMEFTatNLO_pt_gg.json",
+        "hzz": "ggH_SMEFTatNLO_pt_h.json",
+        "htt": "ggH_SMEFTatNLO_pt_h.json",
+        "hww": "ggH_SMEFTatNLO_pt_h.json",
+        "hbbvbf": "ggH_SMEFTatNLO_pt_h.json",
+        "httboost": "ggH_SMEFTatNLO_pt_h.json",
+    },
+    "Njets": {
+        "hgg": "ggH_SMEFTatNLO_njets.json",
+        "hzz": "ggH_SMEFTatNLO_njets.json",
+        "hww": "ggH_SMEFTatNLO_njets.json",
+        "htt": "ggH_SMEFTatNLO_njets.json",
+    },
+}
 
 class DIFFtoSMEFTModel(PhysicsModel):
     def __init__(self):
@@ -143,6 +154,12 @@ class DIFFtoSMEFTModel(PhysicsModel):
             if po == "constant_mass":
                 self.constant_mass = True
 
+            if po.startswith("chan_obs_file="):
+                self.chan_obs_file = po.replace("chan_obs_file=", "")
+                with open(self.chan_obs_file, "r") as f:
+                    self.chan_obs = json.load(f)
+                print "chan_obs:", self.chan_obs
+
 
     def doMH(self):
         if self.constant_mass:
@@ -193,19 +210,18 @@ class DIFFtoSMEFTModel(PhysicsModel):
         }
         """
         production_terms = {}
-        for decay_channel_dir in os.listdir(os.path.join(self.input_dir, "differentials")):
-            production_terms[decay_channel_dir] = {}
-            full_path_to_ggF_json = os.path.join(self.input_dir, "differentials", decay_channel_dir, "ggH_SMEFTatNLO_pt_h.json")
-            if decay_channel_dir == "hgg":
-                full_path_to_ggF_json = os.path.join(self.input_dir, "differentials", decay_channel_dir, "ggH_SMEFTatNLO_pt_gg.json")
+        for channel, obs in self.chan_obs.items():
+            production_terms[channel] = {}
+            full_path_to_ggF_json = os.path.join(self.input_dir, "differentials", channel, ggH_production_files[obs][channel])
             with open(full_path_to_ggF_json, "r") as f:
                 tmp_dct = json.load(f)
-                for edge, next_edge in zip(edges[decay_channel_dir]['pt'][:-1], edges[decay_channel_dir]['pt'][1:]):
+                for edge, next_edge in zip(edges[obs][channel][:-1], edges[obs][channel][1:]):
                     try:
-                        production_terms[decay_channel_dir]["{}_{}".format(str(edge).replace(".", "p"), str(next_edge).replace(".", "p"))] = tmp_dct[str(edge)]
+                        production_terms[channel]["{}_{}".format(str(edge).replace(".", "p").replace("-", "m"), str(next_edge).replace(".", "p").replace("-", "m"))] = tmp_dct[str(edge)]
                     except KeyError:
-                        print("WARNING: No differential cross section for {}-{} GeV in decay channel {}".format(edge, next_edge, decay_channel_dir))
+                        print("WARNING: No differential cross section for {}-{} GeV in decay channel {}".format(edge, next_edge, channel))
                         pass
+        #print("production_terms: {}".format(production_terms))
 
         with open("{}/decay.json".format(self.input_dir), "r") as f:
             decay_terms = json.load(f)
@@ -216,6 +232,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
             for production_mode in production_terms: # e.g. hgg
                 self.full_scaling_names[production_mode] = {}
                 for bin_range in production_terms[production_mode]: # e.g. 0p0_5p0
+                    print(bin_range)
                     name = "full_scaling_{}_{}".format(production_mode, bin_range)
                     eq = self.make_linearised_function(name, production_terms[production_mode][bin_range], decay_terms[max_to_matt[production_mode]], decay_terms["tot"], self.POIs)
                     self.modelBuilder.out._import(eq)
@@ -260,23 +277,39 @@ class DIFFtoSMEFTModel(PhysicsModel):
                 # Bin name contains the decay mode, e.g. hgg
                 production_mode = [chn for chn in list(self.full_scaling_names.keys()) if chn in bin][0]
                 # Process name contains the bin range, e.g. 0p0_5p0
+                obs = self.chan_obs[production_mode]
 
-                # Since Htt and HWW do not have p0 after the edge number
-                if production_mode in ["htt", "hww", "hbbvbf", "httboost"]:
-                    if "GT450" in process: # Htt
-                        bin_range = "450p0_10000p0" 
-                    elif "GT200" in process: # HWW
-                        bin_range = "200p0_10000p0"
+                if obs == "smH_PTH":
+                    # Since Htt and HWW do not have p0 after the edge number
+                    if production_mode in ["htt", "hww", "hbbvbf", "httboost"]:
+                        if "GT450" in process: # Htt
+                            bin_range = "450p0_10000p0" 
+                        elif "GT200" in process: # HWW
+                            bin_range = "200p0_10000p0"
+                        else:
+                            bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr.replace('p0', '') in process][0]
                     else:
-                        bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr.replace('p0', '') in process][0]
-                else:
-                    # Because of convention not respected in HZZ
-                    if "GT200" in process:
-                        bin_range = "200p0_10000p0"
-                    elif "GT450" in process:
-                        bin_range = "450p0_10000p0"
+                        # Because of convention not respected in HZZ
+                        if "GT200" in process:
+                            bin_range = "200p0_10000p0"
+                        elif "GT450" in process:
+                            bin_range = "450p0_10000p0"
+                        else:
+                            bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr in process][0]
+                elif obs == "Njets":
+                    if "xH" not in process:
+                        if any(exp in process for exp in ["NJ_0", "NJ_0p0_1p0"]):
+                            bin_range = "m0p5_0p5"
+                        elif any(exp in process for exp in ["NJ_1", "NJ_1p0_2p0"]):
+                            bin_range = "0p5_1p5"
+                        elif any(exp in process for exp in ["NJ_2", "NJ_2p0_3p0"]):
+                            bin_range = "1p5_2p5"
+                        elif any(exp in process for exp in ["NJ_3", "NJ_3p0_4p0"]):
+                            bin_range = "2p5_3p5"
+                        elif any(exp in process for exp in ["NJ_G", "NJ_4p0_14p0"]):
+                            bin_range = "3p5_100p5"
                     else:
-                        bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr in process][0]
+                        bin_range = "not_supported"
                 full_scaling_function = self.full_scaling_names[production_mode][bin_range]
                 print("Scaling process {} in bin {} with function {}".format(process, bin, full_scaling_function))
                 return full_scaling_function
