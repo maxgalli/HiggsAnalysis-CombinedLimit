@@ -23,7 +23,11 @@ edges = {
         "hzz": [-0.5, 0.5, 1.5, 2.5, 3.5, 100.5],
         "hww": [-0.5, 0.5, 1.5, 2.5, 3.5, 100.5],
         "htt": [-0.5, 0.5, 1.5, 2.5, 3.5, 100.5],
-    }
+    },
+    "DeltaPhiJJ": {
+        "hgg": [0.0, 0.5, 0.9, 1.3, 1.7, 2.5, 3.2],     
+        "hzz": [-3.141593, -1.570796, 0.0, 1.570796, 3.141593],
+    },
 }
 
 decay_file_conversions = {
@@ -43,20 +47,24 @@ max_to_matt = {
     "hbbvbf": "bb"
 }
 
-ggH_production_files = {
+production_files = {
     "smH_PTH": {
-        "hgg": "ggH_SMEFTatNLO_pt_gg.json",
-        "hzz": "ggH_SMEFTatNLO_pt_h.json",
-        "htt": "ggH_SMEFTatNLO_pt_h.json",
-        "hww": "ggH_SMEFTatNLO_pt_h.json",
-        "hbbvbf": "ggH_SMEFTatNLO_pt_h.json",
-        "httboost": "ggH_SMEFTatNLO_pt_h.json",
+        "hgg": "FullProduction_pt_h.json",
+        "hzz": "FullProduction_pt_h.json",
+        "htt": "FullProduction_pt_h.json",
+        "hww": "FullProduction_pt_h.json",
+        "hbbvbf": "FullProduction_pt_h.json",
+        "httboost": "FullProduction_pt_h.json",
     },
     "Njets": {
         "hgg": "ggH_SMEFTatNLO_njets.json",
         "hzz": "ggH_SMEFTatNLO_njets.json",
         "hww": "ggH_SMEFTatNLO_njets.json",
         "htt": "ggH_SMEFTatNLO_njets.json",
+    },
+    "DeltaPhiJJ": {
+        "hgg": "FullProduction_deltaphijj.json",
+        "hzz": "FullProduction_deltaphijj.json",
     },
 }
 
@@ -212,15 +220,25 @@ class DIFFtoSMEFTModel(PhysicsModel):
         production_terms = {}
         for channel, obs in self.chan_obs.items():
             production_terms[channel] = {}
-            full_path_to_ggF_json = os.path.join(self.input_dir, "differentials", channel, ggH_production_files[obs][channel])
-            with open(full_path_to_ggF_json, "r") as f:
+            full_path_to_json = os.path.join(self.input_dir, "differentials", channel, production_files[obs][channel])
+            with open(full_path_to_json, "r") as f:
                 tmp_dct = json.load(f)
                 for edge, next_edge in zip(edges[obs][channel][:-1], edges[obs][channel][1:]):
-                    try:
-                        production_terms[channel]["{}_{}".format(str(edge).replace(".", "p").replace("-", "m"), str(next_edge).replace(".", "p").replace("-", "m"))] = tmp_dct[str(edge)]
-                    except KeyError:
-                        print("WARNING: No differential cross section for {}-{} GeV in decay channel {}".format(edge, next_edge, channel))
-                        pass
+                    if channel == "hzz" and obs == "DeltaPhiJJ":
+                        spec_dct = {
+                            -3.141593: "m3p14159265359",
+                            -1.570796: "m1p57079632679",
+                            0.0: "0p0",
+                            1.570796: "1p57079632679",
+                            3.141593: "3p14159265359",
+                        }
+                        production_terms[channel]["{}_{}".format(spec_dct[edge], spec_dct[next_edge])] = tmp_dct[str(edge)]
+                    else:
+                        try:
+                            production_terms[channel]["{}_{}".format(str(edge).replace(".", "p").replace("-", "m"), str(next_edge).replace(".", "p").replace("-", "m"))] = tmp_dct[str(edge)]
+                        except KeyError:
+                            print("WARNING: No differential cross section for {}-{} GeV in decay channel {}".format(edge, next_edge, channel))
+                            pass
         #print("production_terms: {}".format(production_terms))
 
         with open("{}/decay.json".format(self.input_dir), "r") as f:
@@ -310,6 +328,8 @@ class DIFFtoSMEFTModel(PhysicsModel):
                             bin_range = "3p5_100p5"
                     else:
                         bin_range = "not_supported"
+                else:
+                    bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr in process][0]
                 full_scaling_function = self.full_scaling_names[production_mode][bin_range]
                 print("Scaling process {} in bin {} with function {}".format(process, bin, full_scaling_function))
                 return full_scaling_function
