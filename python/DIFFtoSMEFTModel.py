@@ -102,26 +102,26 @@ class DIFFtoSMEFTModel(PhysicsModel):
                 expr += "-{}*@{}".format(tot_terms["A_{}".format(jpoi_name)], i)
             else:
                 expr += "-0.0*@{}".format(i)
-        print("Making {}".format(name))
+        print(("Making {}".format(name)))
         print(expr)
         return ROOT.RooFormulaVar(name, name, expr, pois)
 
     def make_scaling_function(self, name, terms):
         coeffs = ROOT.std.map("string", "double")()
-        print("linear only: {}".format(self.linear_only))
-        for jpoi_name in self.pois_info.keys():
+        print(("linear only: {}".format(self.linear_only)))
+        for jpoi_name in list(self.pois_info.keys()):
             if "A_{}".format(jpoi_name) in terms: 
                 coeffs[jpoi_name] = terms["A_{}".format(jpoi_name)]
 
             if not self.linear_only:
                 if "B_{}_2".format(jpoi_name) in terms: 
                     coeffs["{}_2".format(jpoi_name)] = terms["B_{}_2".format(jpoi_name)]
-                for kpoi_name in self.pois_info.keys(): 
+                for kpoi_name in list(self.pois_info.keys()): 
                     if "B_{}_{}".format(jpoi_name, kpoi_name) in terms:
                         coeffs["{}_{}".format(jpoi_name, kpoi_name)] = terms["B_{}_{}".format(jpoi_name, kpoi_name)]
         
         roo_name = "scaling_{}".format(name)
-        print("Making scaling function {}".format(roo_name))
+        print(("Making scaling function {}".format(roo_name)))
         #print("Coeffs: {}".format(coeffs))
         #print("POIs: {}".format(self.POIs))
         eft_scaling = ROOT.RooEFTScalingFunction(roo_name, roo_name, coeffs, self.POIs)
@@ -129,9 +129,9 @@ class DIFFtoSMEFTModel(PhysicsModel):
 
         # sanity check
         for coeff in coeffs:
-            print("{} = {}".format(coeff.first, coeff.second))
+            print(("{} = {}".format(coeff.first, coeff.second)))
 
-        self.modelBuilder.out._import(eft_scaling)
+        self.modelBuilder.out.safe_import(eft_scaling)
     
     
     def setPhysicsOptions(self, physOptions):
@@ -144,7 +144,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
         for po in physOptions:
             if po.startswith("input_dir="):
                 self.input_dir = po.replace("input_dir=", "")
-                print "input_dir:", self.input_dir
+                print("input_dir:", self.input_dir)
             
             if po == "linear_only":
                 self.linear_only = True
@@ -157,7 +157,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
 
             if po.startswith("config_file="):
                 self.config_file = po.replace("config_file=", "")
-                print "config_file:", self.config_file
+                print("config_file:", self.config_file)
 
             if po == "constant_mass":
                 self.constant_mass = True
@@ -166,19 +166,19 @@ class DIFFtoSMEFTModel(PhysicsModel):
                 self.chan_obs_file = po.replace("chan_obs_file=", "")
                 with open(self.chan_obs_file, "r") as f:
                     self.chan_obs = json.load(f)
-                print "chan_obs:", self.chan_obs
+                print("chan_obs:", self.chan_obs)
 
 
     def doMH(self):
         if self.constant_mass:
-            print "mass will be set constant to {}".format(self.higgs_mass)
+            print("mass will be set constant to {}".format(self.higgs_mass))
             if self.modelBuilder.out.var("MH"):
                 self.modelBuilder.out.var("MH").setVal(self.higgs_mass)
                 self.modelBuilder.out.var("MH").setConstant(True)
             else:
                 self.modelBuilder.doVar("MH[%g]" % self.higgs_mass)
         else:
-            print "mass will be left floating between {} and {}".format(self.higgs_mass_inf, self.higgs_mass_sup)
+            print("mass will be left floating between {} and {}".format(self.higgs_mass_inf, self.higgs_mass_sup))
             if self.modelBuilder.out.var("MH"):
                 self.modelBuilder.out.var("MH").setRange(self.higgs_mass_inf, self.higgs_mass_sup)
                 self.modelBuilder.out.var("MH").setConstant(False)
@@ -193,15 +193,15 @@ class DIFFtoSMEFTModel(PhysicsModel):
         # read the yaml file for POIs
         with open(self.config_file, "r") as f:
             self.pois_info = yaml.safe_load(f)
-        print("self.pois_info: {}".format(self.pois_info))
+        print(("self.pois_info: {}".format(self.pois_info)))
 
         # set Wilson coefficients
         poi_names = []
-        for name, info in self.pois_info.items():
+        for name, info in list(self.pois_info.items()):
             poi_names.append(name)
             self.modelBuilder.doVar("%s[%g,%g,%g]"%(name, info['val'], info['min'], info['max']))
             self.modelBuilder.out.var(name).setConstant(True)
-        print("poi_names {}".format(poi_names))
+        print(("poi_names {}".format(poi_names)))
         
         self.modelBuilder.doSet("POI", ",".join(poi_names))
         self.POIs = ROOT.RooArgList(self.modelBuilder.out.set("POI"))
@@ -218,7 +218,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
         }
         """
         production_terms = {}
-        for channel, obs in self.chan_obs.items():
+        for channel, obs in list(self.chan_obs.items()):
             production_terms[channel] = {}
             full_path_to_json = os.path.join(self.input_dir, "differentials", channel, production_files[obs][channel])
             with open(full_path_to_json, "r") as f:
@@ -237,7 +237,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
                         try:
                             production_terms[channel]["{}_{}".format(str(edge).replace(".", "p").replace("-", "m"), str(next_edge).replace(".", "p").replace("-", "m"))] = tmp_dct[str(edge)]
                         except KeyError:
-                            print("WARNING: No differential cross section for {}-{} GeV in decay channel {}".format(edge, next_edge, channel))
+                            print(("WARNING: No differential cross section for {}-{} GeV in decay channel {}".format(edge, next_edge, channel)))
                             pass
         #print("production_terms: {}".format(production_terms))
 
@@ -253,7 +253,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
                     print(bin_range)
                     name = "full_scaling_{}_{}".format(production_mode, bin_range)
                     eq = self.make_linearised_function(name, production_terms[production_mode][bin_range], decay_terms[max_to_matt[production_mode]], decay_terms["tot"], self.POIs)
-                    self.modelBuilder.out._import(eq)
+                    self.modelBuilder.out.safe_import(eq)
                     self.full_scaling_names[production_mode][bin_range] = name
         else:
             # First add the decay widths scaling function (partial and total are in the same file)
@@ -267,7 +267,7 @@ class DIFFtoSMEFTModel(PhysicsModel):
                         self.make_scaling_function("partial_{}".format(mode_conv_name), decay_terms[mode])
                         
                         # And we make the BR by making the ratio with scaling_tot
-                        print("Making scaling function scaling_BR_{}".format(mode_conv_name))
+                        print(("Making scaling function scaling_BR_{}".format(mode_conv_name)))
                         self.modelBuilder.factory_('expr::scaling_BR_{}("@0/@1", scaling_partial_{}, scaling_tot)'.format(mode_conv_name, mode_conv_name))
             
             # Now production (a bit more complicated)
@@ -279,16 +279,16 @@ class DIFFtoSMEFTModel(PhysicsModel):
 
                     # And we make the full mu by multiplying the partial mu with the BR
                     full_scaling_name = "full_scaling_{}_{}".format(production_mode, bin_range)
-                    print("Making scaling function {}".format(full_scaling_name))
+                    print(("Making scaling function {}".format(full_scaling_name)))
                     self.modelBuilder.factory_("prod::{}({})".format(full_scaling_name, ",".join(["scaling_{}".format(name), "scaling_BR_{}".format(production_mode)])))
                     #self.modelBuilder.factory_('expr::{}("@0*@1", scaling_{}, scaling_BR_{})'.format(full_scaling_name, name, production_mode))
                     self.full_scaling_names[production_mode][bin_range] = full_scaling_name
         
         print("Full scaling names:")
-        print(self.full_scaling_names)
+        print((self.full_scaling_names))
 
     def getYieldScale(self, bin, process):
-        print("getYieldScale: bin={}, process={}".format(bin, process))
+        print(("getYieldScale: bin={}, process={}".format(bin, process)))
         if self.DC.isSignal[process] and process != "OutsideAcceptance":
         #if self.DC.isSignal[process] and process in ["smH_PTH_30p0_35p0"]:
             try:
@@ -331,11 +331,11 @@ class DIFFtoSMEFTModel(PhysicsModel):
                 else:
                     bin_range = [bnr for bnr in list(self.full_scaling_names[production_mode].keys()) if bnr in process][0]
                 full_scaling_function = self.full_scaling_names[production_mode][bin_range]
-                print("Scaling process {} in bin {} with function {}".format(process, bin, full_scaling_function))
+                print(("Scaling process {} in bin {} with function {}".format(process, bin, full_scaling_function)))
                 return full_scaling_function
             except (KeyError, IndexError) as e:
                 print(e)
-                print("WARNING: No scaling function for process {} in bin {}, will scale with 1".format(process, bin))
+                print(("WARNING: No scaling function for process {} in bin {}, will scale with 1".format(process, bin)))
                 return 1
         return 1
 

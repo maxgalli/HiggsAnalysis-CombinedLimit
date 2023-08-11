@@ -221,4 +221,6 @@
   <class name="CMSHggFormulaD1" />
   <class name="CMSHggFormulaD2" />
   <class name="SimpleProdPdf" />
+  <class name="RooEFTScalingFunction" />
+  <class name="std::map< std::vector<RooAbsReal *>, double>" />
 </lcgdict>
