@@ -34,7 +34,7 @@ VectorizedPower::VectorizedPower(const RooPower &pdf, const RooAbsData &data, bo
     RooArgSet obs(*data.get());
     if (obs.find(pdf.base()) == 0) throw std::invalid_argument("Dataset does not depend on the base of the power");
     x_ = dynamic_cast<const RooRealVar*>(obs.first());
-    exponent_ = &pdf.exponent();
+    exponent_ = &pdf.expList()[0];
 
     xvals_.reserve(data.numEntries());
     for (unsigned int i = 0, n = data.numEntries(); i < n; ++i) {

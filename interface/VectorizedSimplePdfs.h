@@ -3,8 +3,8 @@
 
 #include <RooExponential.h>
 #include <RooAbsData.h>
-#include "HGGRooPdfs.h"
 #include <vector>
+#include <RooPower.h>
 
 class VectorizedExponential {
     public:
