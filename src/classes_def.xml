@@ -135,7 +135,6 @@
 	<class name="RooErfPowExpPdf" />
 	<class name="RooErfPowPdf" />
 	<class name="RooExpNPdf" />
-	<class name="RooExpPoly" />
 	<class name="RooExpTailPdf" />
 	<class name="RooFermi" />
 	<class name="RooFourEMassRes" />
