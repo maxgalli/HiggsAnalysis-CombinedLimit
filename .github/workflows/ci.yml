@@ -35,16 +35,12 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.10"]
-<<<<<<< HEAD
         root: ["6.26.4"]
         include:
           - python: "3.10"
             root: "6.32.2"
           - python: "3.12"
             root: "6.34.4"
-=======
-        root: ["6.32", "6.34"]
->>>>>>> e40581f7 (Split into legacy and modern builds)
 
     runs-on: ubuntu-latest
     name: Compile (py${{ matrix.python }}, root${{ matrix.root }})
@@ -62,11 +58,7 @@ jobs:
       shell: bash -l {0}
       run: |
         # Install dependencies (synchronize with cms-combine-feedstock recipe.yaml)
-<<<<<<< HEAD
-        mamba install -c conda-forge python==${{ matrix.python }} pandas gsl root_base==${{ matrix.root }} libboost-devel eigen vdt
-=======
-        mamba install -c conda-forge cmake python==${{ matrix.python }} pandas six gsl root_base==${{ matrix.root }} libboost-devel eigen vdt
->>>>>>> e40581f7 (Split into legacy and modern builds)
+        mamba install -c conda-forge cmake python==${{ matrix.python }} pandas gsl root_base==${{ matrix.root }} libboost-devel eigen vdt
     - name: Build
       shell: bash -l {0}
       run: |
@@ -83,7 +75,7 @@ jobs:
     strategy:
       matrix:
         python: ["3.8"]
-        root: ["6.22"]  
+        root: ["6.22"]
         include:
           # python 3.10 root 6.26
           - python: "3.10"
@@ -104,7 +96,7 @@ jobs:
     - name: Install build environment
       shell: bash -l {0}
       run: |
-        mamba install -c conda-forge python==${{ matrix.python }} pip pandas root==${{ matrix.root }} gsl tbb vdt boost-cpp boost pcre eigen
+        mamba install -c conda-forge cmake python==${{ matrix.python }} pip pandas root==${{ matrix.root }} gsl tbb vdt boost-cpp boost pcre eigen
     - name: Build
       shell: bash -l {0}
       run: |
