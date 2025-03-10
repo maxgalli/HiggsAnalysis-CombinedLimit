@@ -35,12 +35,16 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.10"]
+<<<<<<< HEAD
         root: ["6.26.4"]
         include:
           - python: "3.10"
             root: "6.32.2"
           - python: "3.12"
             root: "6.34.4"
+=======
+        root: ["6.32", "6.34"]
+>>>>>>> e40581f7 (Split into legacy and modern builds)
 
     runs-on: ubuntu-latest
     name: Compile (py${{ matrix.python }}, root${{ matrix.root }})
@@ -58,11 +62,53 @@ jobs:
       shell: bash -l {0}
       run: |
         # Install dependencies (synchronize with cms-combine-feedstock recipe.yaml)
+<<<<<<< HEAD
         mamba install -c conda-forge python==${{ matrix.python }} pandas gsl root_base==${{ matrix.root }} libboost-devel eigen vdt
+=======
+        mamba install -c conda-forge cmake python==${{ matrix.python }} pandas six gsl root_base==${{ matrix.root }} libboost-devel eigen vdt
+>>>>>>> e40581f7 (Split into legacy and modern builds)
     - name: Build
       shell: bash -l {0}
       run: |
-        cmake -S HiggsAnalysis/CombinedLimit -B build -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DUSE_CXX17=ON
+        cmake -S HiggsAnalysis/CombinedLimit -B build -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX
+        cmake --build build --clean-first --parallel="${CPU_COUNT}"
+        cmake --install build  # Install to conda prefix (unsafe but ok for CI)
+    - name: Run tests
+      shell: bash -l {0}
+      run: |
+        cd HiggsAnalysis/CombinedLimit/test
+        python test_interference.py
+
+  legacy-build:
+    strategy:
+      matrix:
+        python: ["3.8"]
+        root: ["6.22"]  
+        include:
+          # python 3.10 root 6.26
+          - python: "3.10"
+            root: "6.26.4"
+
+    runs-on: ubuntu-latest
+    name: Compile (py${{ matrix.python }}, root${{ matrix.root }})
+
+    steps:
+    - uses: actions/checkout@master
+      with:
+        path: HiggsAnalysis/CombinedLimit # Required to match compile instructions
+    - name: Set up Conda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        python-version: 3.12
+        miniforge-version: latest
+    - name: Install build environment
+      shell: bash -l {0}
+      run: |
+        mamba install -c conda-forge python==${{ matrix.python }} pip pandas root==${{ matrix.root }} gsl tbb vdt boost-cpp boost pcre eigen
+    - name: Build
+      shell: bash -l {0}
+      run: |
+        cmake -S HiggsAnalysis/CombinedLimit -B build -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX
         cmake --build build --clean-first --parallel="${CPU_COUNT}"
         cmake --install build  # Install to conda prefix (unsafe but ok for CI)
     - name: Run tests
