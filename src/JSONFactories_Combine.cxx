@@ -1,7 +1,7 @@
 #include <RooFitHS3/RooJSONFactoryWSTool.h>
 #include <RooFitHS3/JSONIO.h>
 #include <RooFit/Detail/JSONInterface.h>
-#include "static_execute.h"
+#include "../interface/static_execute.h"
 
 #include "RooArgList.h"
 #include "RooFit.h"
@@ -17,7 +17,7 @@ class ProcessNormalizationFactory : public RooFit::JSONIO::Importer {
         {
             std::cout << "Importing ProcessNormalization" << std::endl;
             std::string name(RooJSONFactoryWSTool::name(p));
-            // test
+            // test, not the actual stuff yet
             tool->wsEmplace<ProcessNormalization>(name, 1.0);
             return true;
         }
@@ -28,6 +28,7 @@ class ProcessNormalizationStreamer : public RooFit::JSONIO::Exporter {
         std::string const &key() const override;
         bool exportObject(RooJSONFactoryWSTool *, const RooAbsArg *func, JSONNode &elem) const override
         {
+            std::cout << "Exporting ProcessNormalization" << std::endl;
             const ProcessNormalization *norm = static_cast<const ProcessNormalization *>(func);
             elem["type"] << key();
 
@@ -79,12 +80,12 @@ class ProcessNormalizationStreamer : public RooFit::JSONIO::Exporter {
       const static std::string keystring = name; \
       return keystring;                          \
    }
-DEFINE_EXPORTER_KEY(ProcessNormalizationStreamer, "generic_function");
+DEFINE_EXPORTER_KEY(ProcessNormalizationStreamer, "ProcessNormalization");
 
 STATIC_EXECUTE([]() {
     using namespace RooFit::JSONIO;
 
-    registerImporter<ProcessNormalizationFactory>("generic_function", false);
+    registerImporter<ProcessNormalizationFactory>("ProcessNormalization", false);
 
     registerExporter<ProcessNormalizationStreamer>(ProcessNormalization::Class(), false);
 });
