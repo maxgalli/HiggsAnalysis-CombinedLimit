@@ -3,6 +3,8 @@
 #include <RooFit/Detail/JSONInterface.h>
 #include "../interface/static_execute.h"
 
+#include "RooProdPdf.h"
+
 #include "RooArgList.h"
 #include "RooFit.h"
 #include "RooRealVar.h"
@@ -10,6 +12,18 @@
 #include "../interface/ProcessNormalization.h"
 
 using RooFit::Detail::JSONNode;
+
+//class RooProdPdfFactory : public RooFit::JSONIO::Importer {
+//    public:
+//        bool importArg(RooJSONFactoryWSTool *tool, const JSONNode &p) const override
+//        {
+//            std::cout << "Importing RooProdPdf" << std::endl;
+//            std::string name(RooJSONFactoryWSTool::name(p));
+//            // test, not the actual stuff yet
+//            tool->wsEmplace<RooProdPdf>(name, name, RooArgList());
+//            return true;
+//        }
+//};
 
 class ProcessNormalizationFactory : public RooFit::JSONIO::Importer {
     public:
@@ -85,7 +99,18 @@ DEFINE_EXPORTER_KEY(ProcessNormalizationStreamer, "ProcessNormalization");
 STATIC_EXECUTE([]() {
     using namespace RooFit::JSONIO;
 
+    // print something
+    std::cout << "Registering ProcessNormalization" << std::endl;
+
+    // Register the importer and exporter
+    //registerImporter<RooProdPdfFactory>("RooProdPdf", false);
+
     registerImporter<ProcessNormalizationFactory>("ProcessNormalization", false);
+    //RooFit::JSONIO::registerImporter("ProcessNormalization", new ProcessNormalizationFactory(), true);
 
     registerExporter<ProcessNormalizationStreamer>(ProcessNormalization::Class(), false);
+    //RooFit::JSONIO::registerExporter(ProcessNormalization::Class(), new ProcessNormalizationStreamer(), false);
 });
+
+// print list of registered importers and exporters
+//printFactoryExpressions();
