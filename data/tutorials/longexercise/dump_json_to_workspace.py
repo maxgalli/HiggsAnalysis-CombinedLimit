@@ -2,7 +2,8 @@ import ROOT
 import sys
 import os
 
-ROOT.gSystem.Load('../../../../../../lib/slc7_amd64_gcc12/libHiggsAnalysisCombinedLimit.so')
+#ROOT.gSystem.Load('../../../../../../lib/slc7_amd64_gcc12/libHiggsAnalysisCombinedLimit.so')
+ROOT.gSystem.Load('../../../build/libHiggsAnalysisCombinedLimit.so')
 
 # Check if the user provided an input file
 if len(sys.argv) != 2:

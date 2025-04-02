@@ -10,6 +10,24 @@ print("factory expressions")
 ROOT.RooFit.JSONIO.printFactoryExpressions()
 print("export keys")
 #ROOT.RooFit.JSONIO.printExportKeys()
+import json
+
+def format_json(file_path, indent=4):
+    try:
+        # Read the JSON file
+        with open(file_path, "r") as file:
+            data = json.load(file)  # Parse JSON
+
+        # Write back with proper indentation
+        with open(file_path, "w") as file:
+            json.dump(data, file, indent=indent, ensure_ascii=False)
+
+        print(f"Successfully formatted: {file_path}")
+
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON - {e}")
+    except Exception as e:
+        print(f"Error: {e}")
 
 # Check if the user provided an input file
 if len(sys.argv) != 2:
@@ -41,5 +59,6 @@ print(ws)
 # Export to JSON
 tool = ROOT.RooJSONFactoryWSTool(ws)
 tool.exportJSON(output_file)
+format_json(output_file)
 
 print(f"Exported JSON file: {output_file}")
