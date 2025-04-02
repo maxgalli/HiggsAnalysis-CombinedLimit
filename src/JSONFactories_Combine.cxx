@@ -23,6 +23,12 @@ class ProcessNormalizationFactory : public RooFit::JSONIO::Importer {
             }
             double nominal_value(p["nominalValue"].val_double());
             tool->wsEmplace<ProcessNormalization>(name, nominal_value);
+            RooArgList arg_list = tool->requestArgList<RooAbsReal>(p, "otherFactorList");
+            RooWorkspace &ws = *tool->workspace();
+            auto& process_normalization = static_cast<ProcessNormalization&>(*ws.function(name));
+            for (auto* val : static_range_cast<RooAbsReal*>(arg_list)) {
+                process_normalization.addOtherFactor(*val);
+            } 
             return true;
         }
 };
