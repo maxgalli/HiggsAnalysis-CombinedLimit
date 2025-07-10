@@ -13,7 +13,7 @@ option( USE_VDT "Use VDT (fast and vectorisable mathematical functions)" TRUE )
 # cmake path/to/source # change this path to where-ever you cloned Combine repo to
 # make -j4
 
-find_package(ROOT REQUIRED COMPONENTS MathMore RooFitCore RooFit RooStats HistFactory)
+find_package(ROOT REQUIRED COMPONENTS MathMore RooFitCore RooFit RooStats HistFactory RooFitHS3)
 find_package(Eigen3 REQUIRED)
 find_package(Vdt)
 find_package(LCG QUIET) # only used for FindBoost in StatAnalysis
