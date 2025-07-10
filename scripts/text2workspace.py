@@ -10,7 +10,7 @@ from HiggsAnalysis.CombinedLimit.ModelTools import *
 from HiggsAnalysis.CombinedLimit.PhysicsModel import *
 from HiggsAnalysis.CombinedLimit.ShapeTools import *
 
-ROOT.gSystem.Load('../../../build/libHiggsAnalysisCombinedLimit.so')
+ROOT.gSystem.Load('../../build/libHiggsAnalysisCombinedLimit.so')
 
 # import ROOT with a fix to get batch mode (http://root.cern.ch/phpBB3/viewtopic.php?t=3198)
 argv.append("-b-")
