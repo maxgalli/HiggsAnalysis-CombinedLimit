@@ -137,6 +137,7 @@ void FitDiagnostics::applyOptions(const boost::program_options::variables_map &v
 }
 
 bool FitDiagnostics::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::ModelConfig *mc_b, RooAbsData &data, double &limit, double &limitErr, const double *hint) {
+  std::cout << "DIOLURIDABESTIAAAAAAA" << std::endl;
 
   if (reuseParams_ && minos_!="none"){
 	std::cout << "Cannot re-use b-only fit parameters when running minos. Parameters will be reset when running S+B fit"<<std::endl;
@@ -260,11 +261,17 @@ bool FitDiagnostics::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, R
   //const RooCmdArg &minosCmdArg = minos_ == "poi" ?  RooFit::Minos(*mc_s->GetParametersOfInterest())   : RooFit::Minos(minos_ != "none");  //--> dont use fitTo!
   w->loadSnapshot("clean");
 
+  //std::cout << "DIOLURIDABESTIAAAAAAA222222" << std::endl;
+  //w->Print("v");
+  // qui ci sono
+
 
   /* Background only fit (first POI set to customStartingPoint or 0) ****************************************************************/
+  std::cout << "DIOLURIDABESTIAAAAAAA222222" << std::endl;
 
   if (!customStartingPoint_) r->setVal(0.0);
   else std::cout << "customStartingPoint set to true, background-only fit will correspond to " << r->GetName() << " = " << r->getVal() << std::endl;
+  // simply commenting the next line makes the fit succeed
   r->setConstant(true);
 
   // Setup Nll before calling fits;
@@ -275,9 +282,21 @@ bool FitDiagnostics::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, R
   if (justFit_ || skipBOnlyFit_ ) { 
     // skip b-only fit
   } else if (minos_ != "all") {
+    std::cout << "DIOCANESCHIFO" << std::endl;
     RooArgList minos; 
+    RooWorkspace* ww = mc_s->GetWorkspace();
+    RooRealVar* check = ww->var("prop_binpostVFP2016_bin0");
+    bool isConst = check->isConstant();
+    std::cout << "DIOCANAGLIADIMERDA" << std::endl;
+    std::cout << isConst << std::endl;
+    //ww->Print("V");
+    mc_s->Print("v");
     res_b = doFit(*mc_s->GetPdf(), data, minos, constCmdArg_s, /*hesse=*/true,/*ndim*/1,/*reuseNLL*/ true); 
-    nll_bonly_=nll->getVal()-nll0;   
+    std::cout << "is it fucking const after doFit?" << std::endl;
+    RooRealVar* check2 = ww->var("prop_binpostVFP2016_bin0");
+    bool isConst2 = check2->isConstant();
+    std::cout << isConst2 << std::endl;
+    nll_bonly_=nll->getVal()-nll0;
   } else {
     CloseCoutSentry sentry(verbose < 2);
     RooArgList minos = (*mc_s->GetNuisanceParameters()); 
@@ -286,6 +305,7 @@ bool FitDiagnostics::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, R
     if (res_b) nll_bonly_ = nll->getVal() - nll0;
 
   }
+  std::cout << "MADONNALADRA" << std::endl;
 
   if (res_b && robustHesse_) {
     RobustHesse robustHesse(*nll, verbose - 1);

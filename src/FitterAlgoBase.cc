@@ -226,6 +226,10 @@ RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, RooRealVar
 }
 
 RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, const RooArgList &rs, const RooCmdArg &constrain, bool doHesse, int ndim, bool reuseNLL, bool saveFitResult) {
+    std::cout << "DIOCANESCHIFO calling doFit!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+    rs.Print("v");
+    pdf.Print("v");
+    std::cout << "dioculo" << std::endl;
     RooFitResult *ret = 0;
     if (reuseNLL && nll.get() != 0 && !forceRecreateNLL_) {
         ((cacheutils::CachingSimNLL&)(*nll)).setData(data); // reuse nll but swap out the data
@@ -246,11 +250,12 @@ RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, const RooA
     minim.setErrorLevel(delta68);
     if (!autoBoundsPOIs_.empty()) minim.setAutoBounds(&autoBoundsPOISet_); 
     if (!autoMaxPOIs_.empty()) minim.setAutoMax(&autoMaxPOISet_); 
-    CloseCoutSentry sentry(verbose < 3);    
+    CloseCoutSentry sentry(verbose < 3);
     if (verbose>1) CombineLogger::instance().log("FitterAlgoBase.cc",__LINE__,"do first minimization",__func__); 
     TStopwatch tw; 
     if (verbose) tw.Start();
     bool ok = minim.minimize(verbose);
+    std::cout << "DIOCANESCHIFO calling doFit after minimization" << std::endl;
     if (verbose>1) CombineLogger::instance().log("FitterAlgoBase.cc",__LINE__,std::string(Form("Minimized in %f seconds (%f CPU time)",tw.RealTime(),tw.CpuTime())),__func__);
     nll0Value_ =  nll0;
     nllValue_ =  nll->getVal() - nll0;

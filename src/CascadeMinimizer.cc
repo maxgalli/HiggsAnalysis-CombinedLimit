@@ -91,6 +91,7 @@ void CascadeMinimizer::setAutoMax(const RooArgSet *pois)
 
 bool CascadeMinimizer::improve(int verbose, bool cascade, bool forceResetMinimizer) 
 {
+    std::cout << "INSIDE improve" << std::endl;
     cacheutils::CachingSimNLL *simnllbb = dynamic_cast<cacheutils::CachingSimNLL *>(&nll_);
     if (simnllbb && !runtimedef::get(std::string("MINIMIZER_no_analytic"))) {
       simnllbb->setAnalyticBarlowBeeston(true);
@@ -159,6 +160,7 @@ bool CascadeMinimizer::improve(int verbose, bool cascade, bool forceResetMinimiz
 
 bool CascadeMinimizer::improveOnce(int verbose, bool noHesse) 
 {
+    std::cout << "INSIDE improveOnce" << std::endl;
     static int optConst = runtimedef::get("MINIMIZER_optimizeConst");
     static int rooFitOffset = runtimedef::get("MINIMIZER_rooFitOffset");
     std::string myType(ROOT::Math::MinimizerOptions::DefaultMinimizerType());
@@ -193,6 +195,7 @@ bool CascadeMinimizer::improveOnce(int verbose, bool noHesse)
             minimizer_->setPrintLevel(verbose-1); 
         }
         int status = minimizer_->minimize(myType.c_str(), myAlgo.c_str());
+        std::cout << "Diobocchinaro" << std::endl;
         if (lastHesse_ && !noHesse) {
             if (simnll) simnll->updateZeroPoint(); 
             minimizer_->setPrintLevel(std::max(0,verbose-3)); 
@@ -390,9 +393,13 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
     minimizer_->setStrategy(strategy_);
     
     RooArgSet nuisances = CascadeMinimizerGlobalConfigs::O().nuisanceParameters;
+    std::cout << "INSIDE CASCADE MINIMIZER" << std::endl;
+    nuisances.Print("v");
 
     if (preFit_ ) {
         RooArgSet frozen(nuisances);
+        std::cout << "preFit_: which are frozen?" << std::endl;
+        frozen.Print("v");
         RooStats::RemoveConstantParameters(&frozen);
         utils::setAllConstant(frozen,true);
         freezeDiscParams(true);
@@ -410,6 +417,7 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
         freezeDiscParams(false);
         remakeMinimizer();
     }
+    std::cout << "AFTER PREFIT" << std::endl;
     
     bool ret = true;
     if (!doMultipleMini){
@@ -418,8 +426,10 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
     	} 
 
       ret = improve(verbose, cascade);
+      std::cout << "NOT MULTIPLEMINI" << std::endl;
 
     }else{
+      std::cout << "YES MULTIPLEMINI" << std::endl;
       // Do the discrete nuisance magic
 
       // clean parameters before minimization but dont include the pdf indeces of course!
@@ -464,6 +474,7 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
 	}
       }
     }
+    std::cout << "AFTER MULTIPLEMINI BULLSHIT" << std::endl;
 
     // Check boundaries
     std::unique_ptr<RooArgSet> nllParams(nll_.getParameters((const RooArgSet*)0));
@@ -480,6 +491,7 @@ bool CascadeMinimizer::minimize(int verbose, bool cascade)
     }
     freezeDiscParams(false);
     return ret;
+    std::cout << "END OF MINIMIZE" << std::endl;
 }
 
 bool CascadeMinimizer::multipleMinimize(const RooArgSet &reallyCleanParameters, bool& ret, double& minimumNLL, int verbose, bool cascade,int mode, std::vector<std::vector<bool> >&contributingIndeces){
