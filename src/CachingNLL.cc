@@ -818,6 +818,7 @@ void cacheutils::CachingAddNLL::propagateData() {
 
 
 void cacheutils::CachingAddNLL::setAnalyticBarlowBeeston(bool flag) {
+    std::cout << "setAnalyticBarlowBeeston from CachingAddNLL" << std::endl;
     for (auto const& funci : pdfs_) {
         if ( auto pdf = dynamic_cast<CMSHistErrorPropagator const*>(funci->pdf()); pdf != nullptr ) {
             pdf->setAnalyticBarlowBeeston(flag);
@@ -1253,6 +1254,7 @@ void cacheutils::CachingSimNLL::setChannelMasks(const RooArgList &args) {
 }
 
 void cacheutils::CachingSimNLL::setAnalyticBarlowBeeston(bool flag) {
+    std::cout << "setAnalyticBarlowBeeston from CachingSimNLL" << std::endl;
    /*
       if (flag) {
         printf(">> Enabling analytic minimisation of bin-wise statistical uncertainty parameters\n");

@@ -449,6 +449,7 @@ void CMSHistSum::runBarlowBeeston() const {
 
 void CMSHistSum::setAnalyticBarlowBeeston(bool flag) const {
   // Clear it if it's already initialised
+  std::cout << "DIOPORCOOOOOOOOO AAAAA" << std::endl;
   if (bb_.init && flag) return;
   if (bb_.init && !flag) {
     for (unsigned i = 0; i < bb_.push_res.size(); ++i) {
@@ -477,9 +478,9 @@ void CMSHistSum::setAnalyticBarlowBeeston(bool flag) const {
         double gobs_val = 0.;
         for (RooAbsArg *arg : vbinpars_[j][0]->valueClients()) {
           if (arg == this || arg == &binsentry_) {
-            // std::cout << "Skipping " << this << " " << this->GetName() << "\n";
+            std::cout << "Skipping " << this << " " << this->GetName() << "\n";
           } else {
-            // std::cout << "Adding " << arg << " " << arg->GetName() << "\n";
+            std::cout << "Adding " << arg << " " << arg->GetName() << "\n";
             bb_.dirty_prop.insert(arg);
             auto as_gauss = dynamic_cast<RooGaussian*>(arg);
             if (as_gauss) {
@@ -491,6 +492,7 @@ void CMSHistSum::setAnalyticBarlowBeeston(bool flag) const {
         bb_.gobs.push_back(gobs_val);
         bb_.push_res.push_back((RooRealVar*)vbinpars_[j][0]);
         bb_.push_res.back()->setConstant(true);
+        std::cout << "DIOPORCOOOOOOOOO BBBBBBBB" << std::endl;
       }
     }
     unsigned n = bb_.use.size();

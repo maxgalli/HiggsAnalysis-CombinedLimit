@@ -92,11 +92,18 @@ void CascadeMinimizer::setAutoMax(const RooArgSet *pois)
 bool CascadeMinimizer::improve(int verbose, bool cascade, bool forceResetMinimizer) 
 {
     std::cout << "INSIDE improve" << std::endl;
+    // here not const yet
+    std::cout << "before calling setAnalyticBarlowBeeston" << std::endl;
+    nll_.getParameters((const RooArgSet*)nullptr)->Print("v");
     cacheutils::CachingSimNLL *simnllbb = dynamic_cast<cacheutils::CachingSimNLL *>(&nll_);
     if (simnllbb && !runtimedef::get(std::string("MINIMIZER_no_analytic"))) {
+      std::cout << "DIOPORCOOOOOOOOO CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" << std::endl;
       simnllbb->setAnalyticBarlowBeeston(true);
       forceResetMinimizer = true;
     }
+    // here const
+    std::cout << "after calling setAnalyticBarlowBeeston" << std::endl;
+    nll_.getParameters((const RooArgSet*)nullptr)->Print("v");
     if (forceResetMinimizer || !minimizer_.get()) remakeMinimizer();
     minimizer_->setPrintLevel(verbose-1);
    
@@ -107,6 +114,8 @@ bool CascadeMinimizer::improve(int verbose, bool cascade, bool forceResetMinimiz
     std::string nominalAlgo(ROOT::Math::MinimizerOptions::DefaultMinimizerAlgo());
     float       nominalTol(ROOT::Math::MinimizerOptions::DefaultTolerance());
     minimizer_->setEps(nominalTol);
+    // here already const
+    //nll_.getParameters((const RooArgSet*)nullptr)->Print("v");
     if (approxPreFitTolerance_ > 0) {
       double tol = std::max(approxPreFitTolerance_, 10. * nominalTol);
       do {
@@ -194,8 +203,12 @@ bool CascadeMinimizer::improveOnce(int verbose, bool noHesse)
             if (simnll) simnll->updateZeroPoint(); 
             minimizer_->setPrintLevel(verbose-1); 
         }
-        int status = minimizer_->minimize(myType.c_str(), myAlgo.c_str());
         std::cout << "Diobocchinaro" << std::endl;
+        //nll_.Print("v");
+        // here automcstats const for b only fit
+        nll_.getParameters((const RooArgSet*)nullptr)->Print("v");
+        int status = minimizer_->minimize(myType.c_str(), myAlgo.c_str());
+        std::cout << "Diobocchinaro2" << std::endl;
         if (lastHesse_ && !noHesse) {
             if (simnll) simnll->updateZeroPoint(); 
             minimizer_->setPrintLevel(std::max(0,verbose-3)); 
@@ -234,6 +247,7 @@ bool CascadeMinimizer::minos(const RooArgSet & params , int verbose ) {
       // want to freeze it here. Trick is to set all floating ones constant now,
       // then call setAnalyticBarlowBeeston, which will initiate bb only for the
       // floating ones, before unfreezing params again.
+      std::cout << "Diobocchinaro inside bb stuff" << std::endl;
       RooArgSet toFreeze(params);
       RooStats::RemoveConstantParameters(&toFreeze);
       utils::setAllConstant(toFreeze, true);

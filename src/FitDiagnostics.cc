@@ -285,17 +285,17 @@ bool FitDiagnostics::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, R
     std::cout << "DIOCANESCHIFO" << std::endl;
     RooArgList minos; 
     RooWorkspace* ww = mc_s->GetWorkspace();
-    RooRealVar* check = ww->var("prop_binpostVFP2016_bin0");
-    bool isConst = check->isConstant();
-    std::cout << "DIOCANAGLIADIMERDA" << std::endl;
-    std::cout << isConst << std::endl;
+    //RooRealVar* check = ww->var("prop_binpostVFP2016_bin0");
+    //bool isConst = check->isConstant();
+    //std::cout << "DIOCANAGLIADIMERDA" << std::endl;
+    //std::cout << isConst << std::endl;
     //ww->Print("V");
     mc_s->Print("v");
     res_b = doFit(*mc_s->GetPdf(), data, minos, constCmdArg_s, /*hesse=*/true,/*ndim*/1,/*reuseNLL*/ true); 
-    std::cout << "is it fucking const after doFit?" << std::endl;
-    RooRealVar* check2 = ww->var("prop_binpostVFP2016_bin0");
-    bool isConst2 = check2->isConstant();
-    std::cout << isConst2 << std::endl;
+    //std::cout << "is it fucking const after doFit?" << std::endl;
+    //RooRealVar* check2 = ww->var("prop_binpostVFP2016_bin0");
+    //bool isConst2 = check2->isConstant();
+    //std::cout << isConst2 << std::endl;
     nll_bonly_=nll->getVal()-nll0;
   } else {
     CloseCoutSentry sentry(verbose < 2);

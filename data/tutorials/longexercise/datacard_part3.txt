@@ -25,3 +25,4 @@ norm_jetFakes                lnN     -               -               -          
 top_pt_ttbar_shape           shape   1               -               -               -               -               
 xsec_diboson                 lnN     -               1.05            -               -               -               
 * autoMCStats 0
+systs group = CMS_eff_b CMS_eff_t CMS_eff_t_highpt CMS_scale_t_1prong0pi0_13TeV CMS_scale_t_1prong1pi0_13TeV CMS_scale_t_3prong0pi0_13TeV acceptance_bbH lumi_13TeV lumi_13TeV norm_jetFakes top_pt_ttbar_shape xsec_diboson

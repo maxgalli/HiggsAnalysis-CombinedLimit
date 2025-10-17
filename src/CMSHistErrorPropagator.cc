@@ -222,6 +222,7 @@ void CMSHistErrorPropagator::runBarlowBeeston() const {
 }
 
 void CMSHistErrorPropagator::setAnalyticBarlowBeeston(bool flag) const {
+  std::cout << "MA ALLORA CE LA FACCIAMO DIO CANEEEEEE" << std::endl;
   // Clear it if it's already initialised
   if (bb_.init && flag) return;
   if (bb_.init && !flag) {
@@ -251,9 +252,9 @@ void CMSHistErrorPropagator::setAnalyticBarlowBeeston(bool flag) const {
         double gobs_val = 0.;
         for (RooAbsArg * arg : vbinpars_[j][0]->valueClients()) {
           if (arg == this || arg == &binsentry_) {
-            // std::cout << "Skipping " << this << " " << this->GetName() << "\n";
+            std::cout << "Skipping " << this << " " << this->GetName() << "\n";
           } else {
-            // std::cout << "Adding " << arg << " " << arg->GetName() << "\n";
+            std::cout << "Adding " << arg << " " << arg->GetName() << "\n";
             bb_.dirty_prop.insert(arg);
             auto as_gauss = dynamic_cast<RooGaussian*>(arg);
             if (as_gauss) {
