@@ -1,4 +1,5 @@
 #include "../interface/CloseCoutSentry.h"
+#include "../interface/Logger.h"
 
 #include <cstdio>
 #include <cassert>
@@ -31,6 +32,7 @@ CloseCoutSentry::CloseCoutSentry(bool silent) :
             dup2(fdTmp_, 2);
             assert(owner_ == 0);
             owner_ = this;
+            combine::logging::Logger::instance().pushSuppression();
         } else {
             silent_ = false; 
         }
@@ -51,6 +53,7 @@ void CloseCoutSentry::clear()
     if (silent_) {
         reallyClear();
         silent_ = false;
+        combine::logging::Logger::instance().popSuppression();
     }
 }
 
@@ -68,6 +71,7 @@ void CloseCoutSentry::reallyClear()
 void CloseCoutSentry::breakFree() 
 {
     reallyClear();
+    combine::logging::Logger::instance().popSuppression();
 }
 
 FILE *CloseCoutSentry::trueStdOutGlobal()

@@ -147,16 +147,16 @@ bool FitterAlgoBase::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats:
   if (profileMode_ != ProfileAll && parametersToFreeze_.getSize() == 0) {
       switch (profileMode_) {
           case ProfileUnconstrained:
-              if (verbose > 1) fprintf(sentry.trueStdOut(), "Will not profile the constrained nuisance parameters.\n");
+              if (verbose > 1) CombineLogger::instance().log("FitterAlgoBase.cc", __LINE__, "Will not profile the constrained nuisance parameters.", __func__);
               break;
           case ProfilePOI:
-              if (verbose > 1) fprintf(sentry.trueStdOut(), "Will profile only the other POIs.\n");
+              if (verbose > 1) CombineLogger::instance().log("FitterAlgoBase.cc", __LINE__, "Will profile only the other POIs.", __func__);
               break;
           case NoProfiling:
-              if (verbose > 1) fprintf(sentry.trueStdOut(), "Will not profile any parameters.\n");
+              if (verbose > 1) CombineLogger::instance().log("FitterAlgoBase.cc", __LINE__, "Will not profile any parameters.", __func__);
               break;
           case ProfileAll:
-              if (verbose > 1) fprintf(sentry.trueStdOut(), "Will profile all parameters.\n");
+              if (verbose > 1) CombineLogger::instance().log("FitterAlgoBase.cc", __LINE__, "Will profile all parameters.", __func__);
               break;
       }
 
@@ -295,7 +295,7 @@ RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, const RooA
             RooStats::RemoveConstantParameters(&any);
             std::stringstream sstr;
             any.printValue(sstr);
-            fprintf(sentry.trueStdOut(), "Parameters that will be floating are: %s.\n",sstr.str().c_str());
+            CombineLogger::instance().log("FitterAlgoBase.cc", __LINE__, std::string("Parameters that will be floating are: ") + sstr.str(), __func__);
         }
         ret = doFit(pdf,data,rs,constrain,doHesse,ndim,reuseNLL,saveFitResult);
         utils::setAllConstant(frozenParameters, false);
@@ -317,7 +317,7 @@ RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, const RooA
   // r might be a bin-by-bin parameter that was minimzed analytically,
   // therefore not appearing in floatParsFinal().
 	if (!rfloat && runtimedef::get("MINIMIZER_no_analytic")) {
-                fprintf(sentry.trueStdOut(), "Skipping %s. Looks like the last fit did not float this parameter. You could try running --algo grid to get the uncertainties.\n",r.GetName());
+                CombineLogger::instance().log("FitterAlgoBase.cc", __LINE__, std::string("Skipping ") + r.GetName() + ". Looks like the last fit did not float this parameter. You could try running --algo grid to get the uncertainties.", __func__);
 		continue ;
 		// Add the constant parameters in case previous fit was last iteration of a "discrete parameters loop"
 		//rfloat = ret->constPars().find(r.GetName());
@@ -325,7 +325,7 @@ RooFitResult *FitterAlgoBase::doFit(RooAbsPdf &pdf, RooAbsData &data, const RooA
 	} else if (!rfloat && !runtimedef::get("MINIMIZER_no_analytic")) {
     rfloat = ret->constPars().find(r.GetName());
     if (!rfloat) {
-      fprintf(sentry.trueStdOut(), "Skipping %s. Parameter not found in the RooFitResult.\n",r.GetName());
+      CombineLogger::instance().log("FitterAlgoBase.cc", __LINE__, std::string("Skipping ") + r.GetName() + ". Parameter not found in the RooFitResult.", __func__);
       continue ;
     }
   }

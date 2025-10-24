@@ -6,6 +6,10 @@ import math
 import argparse
 import json
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging, set_level_from_verbose
+
+configure_logging()
+
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 parser = argparse.ArgumentParser()
 parser.add_argument("--file", "-f", help="named input file")
@@ -16,13 +20,14 @@ parser.add_argument("--y_axis_max", help="Fix y axis maximum", default=100.0)
 parser.add_argument("--custom_x_range", help="Fix x axis range", action="store_true", default=False)
 parser.add_argument("--x_axis_min", help="Fix x axis minimum", default=90.0)
 parser.add_argument("--x_axis_max", help="Fix x axis maximum", default=1000.0)
-parser.add_argument("--verbosity", "-v", help="verbosity", default=0)
+parser.add_argument("--verbosity", "-v", help="verbosity", default=0, type=int)
 parser.add_argument("--log", help="Set log range for x and y axis", action="store_true", default=False)
 parser.add_argument("--expected_only", help="Plot expected only", action="store_true", default=False)
 parser.add_argument("--outname", "-o", help="Output plot name", default="mssm_limit")
 parser.add_argument("--title", help="Plot title", default="19.8 fb^{-1} (8 TeV)")
 # parser.add_argument('--table_vals', help='Amount of values to be written in a table for different masses', default=10)
 args = parser.parse_args()
+set_level_from_verbose(getattr(args, "verbosity", None))
 
 
 # Store the mass list convert from json file or directly via tgraphs

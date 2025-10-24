@@ -4,6 +4,10 @@
 import os
 from optparse import OptionGroup, OptionParser
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging
+
+logger = configure_logging()
+
 ## set up the option parser
 parser = OptionParser(
     usage="usage: %prog [options] ARG",

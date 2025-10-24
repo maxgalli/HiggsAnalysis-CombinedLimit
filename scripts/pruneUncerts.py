@@ -9,6 +9,12 @@ from optparse import OptionGroup, OptionParser
 
 
 from HiggsAnalysis.CombinedLimit.DatacardPruner import DatacardPruner
+from HiggsAnalysis.CombinedLimit.util.logging_config import (
+    configure_logging,
+    set_level_from_verbose,
+)
+
+configure_logging()
 
 ## set up the option parser
 parser = OptionParser(
@@ -39,6 +45,14 @@ parser.add_option(
     help='The mass value to be chosen, when considering the signal-plus-background fit in the metric. If the metric of the background-only fit is chosen this option has no effect. [Default: "125"]',
 )
 parser.add_option(
+    "-v",
+    "--verbose",
+    dest="verbose",
+    type="int",
+    default=None,
+    help="Verbosity for logging output.",
+)
+parser.add_option(
     "--threshold",
     dest="threshold",
     default="0.05",
@@ -67,6 +81,7 @@ parser.add_option(
     help="Use this option if you want to comment the uncertainties added to the list of pruned nuisance parameters from the tested datacards at the same time. [Default: False]",
 )
 (options, args) = parser.parse_args()
+set_level_from_verbose(getattr(options, "verbose", None))
 ## check number of arguments; in case print usage
 if len(args) < 1:
     parser.print_usage()

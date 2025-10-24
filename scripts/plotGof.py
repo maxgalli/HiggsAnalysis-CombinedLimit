@@ -4,6 +4,10 @@ import HiggsAnalysis.CombinedLimit.util.plotting as plot
 import argparse
 import json
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging, set_level_from_verbose
+
+configure_logging()
+
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="""Input json file""")
 parser.add_argument(
@@ -31,7 +35,9 @@ parser.add_argument(
     type=float,
     help="Range of percentile from the distribution to be included. Requires two arguments in the form of <min> <max>. Overrides range option.",
 )
+parser.add_argument("--verbose", type=int, default=None, help="verbosity for logging output")
 args = parser.parse_args()
+set_level_from_verbose(getattr(args, "verbose", None))
 
 
 def DrawAxisHists(pads, axis_hists, def_pad=None):

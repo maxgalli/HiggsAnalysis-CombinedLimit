@@ -7,6 +7,10 @@ import json
 import argparse
 import os.path
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging, set_level_from_verbose
+
+configure_logging()
+
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
@@ -107,7 +111,9 @@ parser.add_argument("--others", nargs="*", help="add secondary scans processed a
 parser.add_argument("--breakdown", help="do quadratic error subtraction using --others")
 parser.add_argument("--logo", default="CMS")
 parser.add_argument("--logo-sub", default="Internal")
+parser.add_argument("--verbose", type=int, default=None, help="verbosity for logging output")
 args = parser.parse_args()
+set_level_from_verbose(getattr(args, "verbose", None))
 
 print("--------------------------------------")
 print(args.output)

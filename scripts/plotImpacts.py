@@ -8,6 +8,10 @@ import HiggsAnalysis.CombinedLimit.tool_base.rounding as rounding
 import HiggsAnalysis.CombinedLimit.calculate_pulls as CP
 import six
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging, set_level_from_verbose
+
+configure_logging()
+
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(0)
@@ -38,6 +42,7 @@ parser.add_argument("--input", "-i", help="input json file")
 parser.add_argument("--output", "-o", help="name of the output file to create")
 parser.add_argument("--translate", "-t", help="JSON file for remapping of parameter names")
 parser.add_argument("--units", default=None, help="Add units to the best-fit parameter value")
+parser.add_argument("--verbose", type=int, default=None, help="verbosity for logging output")
 parser.add_argument("--per-page", type=int, default=30, help="Number of parameters to show per page")
 parser.add_argument("--max-pages", type=int, default=None, help="Maximum number of pages to write")
 parser.add_argument("--height", type=int, default=600, help="Canvas height, in pixels")
@@ -53,6 +58,7 @@ parser.add_argument("--sort", "-s", choices=["impact", "constraint", "pull"], de
 parser.add_argument("--relative", "-r", action="store_true", help="Show impacts relative to the uncertainty on the POI")
 parser.add_argument("--summary", action="store_true", help="Produce additional summary page, named [output]_summary.pdf")
 args = parser.parse_args()
+set_level_from_verbose(getattr(args, "verbose", None))
 
 externalPullDef = args.pullDef is not None
 

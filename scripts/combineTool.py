@@ -13,6 +13,12 @@ from HiggsAnalysis.CombinedLimit.tool_base.Output import PrintFit, CollectLimits
 from HiggsAnalysis.CombinedLimit.tool_base.T2W import T2W
 from HiggsAnalysis.CombinedLimit.tool_base.FastScan import FastScan
 from HiggsAnalysis.CombinedLimit.tool_base.TaylorExpand import TaylorExpand
+from HiggsAnalysis.CombinedLimit.util.logging_config import (
+    configure_logging,
+    set_level_from_verbose,
+)
+
+configure_logging()
 
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -46,6 +52,7 @@ register_method(parser, methods, TaylorExpand)
 parser.add_argument("-M", "--method")
 
 (args, unknown) = parser.parse_known_args()
+set_level_from_verbose(getattr(args, "verbose", None))
 
 # DRY_RUN = args.dry_run
 
@@ -73,4 +80,5 @@ parser.add_argument("-h", "--help", action="help")
 (args, unknown) = parser.parse_known_args()
 
 method.set_args(args, unknown)
+set_level_from_verbose(getattr(args, "verbose", None))
 method.run_method()

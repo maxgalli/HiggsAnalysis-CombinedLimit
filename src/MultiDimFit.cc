@@ -1,6 +1,7 @@
 #include "../interface/MultiDimFit.h"
 #include <stdexcept>
 #include <cmath>
+#include <sstream>
 
 #include "TMath.h"
 #include "TFile.h"
@@ -15,6 +16,7 @@
 #include "../interface/Combine.h"
 #include "../interface/CascadeMinimizer.h"
 #include "../interface/CloseCoutSentry.h"
+#include "../interface/CombineLogger.h"
 #include "../interface/utils.h"
 #include "../interface/RobustHesse.h"
 #include "../interface/ProfilingTools.h"
@@ -862,8 +864,10 @@ void MultiDimFit::doGrid(RooWorkspace *w, RooAbsReal &nll)
             if (ipoint > lastPoint_) break;
             *params = snap;
 
-            if (verbose && (ipoint % nprint == 0)) {
-                fprintf(sentry.trueStdOut(), "Point %d/%d, ", ipoint,npermutations);
+            bool logPoint = verbose && (nprint > 0) && (ipoint % nprint == 0);
+            std::ostringstream pointLog;
+            if (logPoint) {
+                pointLog << "Point " << ipoint << "/" << npermutations;
             }
             for (unsigned int poi_i=0;poi_i<n;poi_i++) {
                 int ip = (*perm_it)[poi_i];
@@ -878,11 +882,13 @@ void MultiDimFit::doGrid(RooWorkspace *w, RooAbsReal &nll)
                 }
                 double xi = pmin[poi_i] + deltaXi * (ip + spacingOffset);
                 poiVals_[poi_i] = xi; poiVars_[poi_i]->setVal(xi);
-                if (verbose && (ipoint % nprint == 0)) {
-                    fprintf(sentry.trueStdOut(), " %s = %f ", poiVars_[poi_i]->GetName(), xi);
+                if (logPoint) {
+                    pointLog << " " << poiVars_[poi_i]->GetName() << " = " << xi;
                 }
             }
-            if (verbose && (ipoint % nprint == 0)) fprintf(sentry.trueStdOut(), "\n");
+            if (logPoint) {
+                CombineLogger::instance().log("MultiDimFit.cc", __LINE__, pointLog.str(), __func__);
+            }
 
             nll.clearEvalErrorLog(); nll.getVal();
             if (nll.numEvalErrors() > 0) {
@@ -1220,4 +1226,3 @@ std::map<std::string, std::vector<float>> MultiDimFit::getRangesDictFromInString
     }
     return out_range_dict;
 }
-

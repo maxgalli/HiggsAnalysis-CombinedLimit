@@ -9,6 +9,12 @@ from HiggsAnalysis.CombinedLimit.DatacardParser import *
 from HiggsAnalysis.CombinedLimit.ModelTools import *
 from HiggsAnalysis.CombinedLimit.PhysicsModel import *
 from HiggsAnalysis.CombinedLimit.ShapeTools import *
+from HiggsAnalysis.CombinedLimit.util.logging_config import (
+    configure_logging,
+    set_level_from_verbose,
+)
+
+configure_logging()
 
 # import ROOT with a fix to get batch mode (http://root.cern.ch/phpBB3/viewtopic.php?t=3198)
 argv.append("-b-")
@@ -38,6 +44,14 @@ parser.add_option(
     help="Pass a given option to the physics model (can specify multiple times)",
 )
 parser.add_option(
+    "-v",
+    "--verbose",
+    dest="verbose",
+    default=None,
+    type="int",
+    help="Verbosity for logging output.",
+)
+parser.add_option(
     "",
     "--dump-datacard",
     dest="dumpCard",
@@ -60,6 +74,7 @@ parser.add_option(
     help="Swap multipdf pdfs with their current index pdf",
 )
 (options, args) = parser.parse_args()
+set_level_from_verbose(getattr(options, "verbose", None))
 
 if len(args) == 0:
     parser.print_usage()

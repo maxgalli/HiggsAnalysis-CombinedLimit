@@ -8,6 +8,12 @@ from sys import argv, exit
 import six
 
 from HiggsAnalysis.CombinedLimit.DatacardParser import *
+from HiggsAnalysis.CombinedLimit.util.logging_config import (
+    configure_logging,
+    set_level_from_verbose,
+)
+
+configure_logging()
 
 parser = OptionParser(
     usage="%prog [options] [label=datacard.txt | datacard.txt]",
@@ -92,6 +98,7 @@ parser.add_option(
 )
 
 (options, args) = parser.parse_args()
+set_level_from_verbose(getattr(options, "verbose", None))
 options.bin = True  # fake that is a binary output, so that we parse shape lines
 options.nuisancesToExclude = []
 options.verbose = 0

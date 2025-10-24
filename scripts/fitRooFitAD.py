@@ -2,13 +2,20 @@ import numpy as np
 import ROOT
 import argparse
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging, set_level_from_verbose
+
+configure_logging()
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--input", "-i", help="input ws file")
 parser.add_argument("--backend", help='set evaluation backend, default is "combine"')
 parser.add_argument("--write-debug-macro", action="store_true", help='write debug macro in case of the "codegen" backend')
 
 
+parser.add_argument("--verbose", type=int, default=None, help="verbosity for logging")
+
 args = parser.parse_args()
+set_level_from_verbose(getattr(args, "verbose", None))
 
 with ROOT.TFile.Open(args.input) as f:
     ws = f.Get("w")

@@ -3,6 +3,10 @@ import HiggsAnalysis.CombinedLimit.util.plotting as plot
 import ROOT
 import argparse
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging, set_level_from_verbose
+
+configure_logging()
+
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
@@ -118,7 +122,9 @@ parser.add_argument(
     help="""Specify histogram to extract
      mh exclusion from""",
 )
+parser.add_argument("--verbose", type=int, default=None, help="verbosity for logging output")
 args = parser.parse_args()
+set_level_from_verbose(getattr(args, "verbose", None))
 
 
 plot.ModTDRStyle(r=0.06 if (args.hist or args.model_hist) is None else 0.17, l=0.12)

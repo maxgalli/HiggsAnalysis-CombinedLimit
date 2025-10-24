@@ -178,6 +178,15 @@ int main(int argc, char **argv) {
     return 1000;
   }
 
+  auto mapVerboseToLevel = [](int v) {
+    if (v <= -1) return combine::logging::Level::Warning;
+    if (v == 0) return combine::logging::Level::Info;
+    if (v == 1) return combine::logging::Level::Info;
+    if (v == 2) return combine::logging::Level::Debug;
+    return combine::logging::Level::Trace;
+  };
+  CombineLogger::instance().setVerbosity(mapVerboseToLevel(verbose));
+
   if(datacard == "") {
     cerr << "Missing datacard file" << endl;
     cout << "Usage: combine [options]\n";
@@ -349,5 +358,4 @@ int main(int argc, char **argv) {
 
   if (vm.count("perfCounters")) PerfCounter::printAll();
 }
-
 

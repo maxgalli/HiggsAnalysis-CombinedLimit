@@ -3,6 +3,10 @@ import ROOT
 import HiggsAnalysis.CombinedLimit.util.plotting as plot
 import argparse
 
+from HiggsAnalysis.CombinedLimit.util.logging_config import configure_logging, set_level_from_verbose
+
+configure_logging()
+
 # import CombineHarvester.CombineTools.maketable as maketable
 
 parser = argparse.ArgumentParser()
@@ -36,7 +40,9 @@ parser.add_argument("--ratio-to", default=None)
 parser.add_argument("--pad-style", default=None, help="""Extra style options for the pad, e.g. Grid=(1,1)""")
 parser.add_argument("--auto-style", nargs="?", const="", default=None, help="""Take line colors and styles from a pre-defined list""")
 parser.add_argument("--table_vals", help="Amount of values to be written in a table for different masses", default=10)
+parser.add_argument("--verbose", type=int, default=None, help="verbosity for logging output")
 args = parser.parse_args()
+set_level_from_verbose(getattr(args, "verbose", None))
 
 
 def DrawAxisHists(pads, axis_hists, def_pad=None):
