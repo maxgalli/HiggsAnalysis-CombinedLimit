@@ -104,6 +104,16 @@ const char *levelToAnsi(combine::logging::Level level) {
 
 namespace combine::logging {
 
+struct Logger::Pipe {
+    int readFd = -1;
+    int dupFd = -1;
+    std::thread reader;
+    std::string buffer;
+    std::atomic<bool> running{false};
+    Level level = Level::Info;
+    std::string channel;
+};
+
 struct Logger::Impl {
     Level level = Level::Info;
     bool consoleColors = true;
@@ -118,30 +128,6 @@ struct Logger::Impl {
 
     std::unique_ptr<LoggingStreambuf> coutHook;
     std::unique_ptr<LoggingStreambuf> cerrHook;
-
-    struct Pipe {
-        int readFd = -1;
-        int dupFd = -1;
-        std::thread reader;
-        std::string buffer;
-        std::atomic<bool> running{false};
-        Level level = Level::Info;
-        std::string channel;
-
-        void reset() {
-            buffer.clear();
-            running.store(false);
-            if (reader.joinable()) reader.join();
-            if (readFd != -1) {
-                ::close(readFd);
-                readFd = -1;
-            }
-            if (dupFd != -1) {
-                ::close(dupFd);
-                dupFd = -1;
-            }
-        }
-    };
 
     Pipe stdoutPipe;
     Pipe stderrPipe;
@@ -178,7 +164,7 @@ static void writeAll(int fd, const char *data, size_t size) {
     }
 }
 
-static void startPipeCapture(Logger &logger, Logger::Impl &impl, int fd, FILE *stream, Logger::Impl::Pipe &pipe, Level level, const char *channel) {
+void Logger::startPipeCapture(int fd, FILE *stream, Pipe &pipe, Level level, const char *channel) {
     if (pipe.running.load()) return;
 
     int fds[2];
@@ -219,7 +205,8 @@ static void startPipeCapture(Logger &logger, Logger::Impl &impl, int fd, FILE *s
         }
     }
 
-    pipe.reader = std::thread([&logger, &pipe]() {
+    Logger *self = this;
+    pipe.reader = std::thread([self, &pipe]() {
         std::array<char, 512> buf{};
         while (pipe.running.load()) {
             ssize_t n = ::read(pipe.readFd, buf.data(), buf.size());
@@ -228,7 +215,7 @@ static void startPipeCapture(Logger &logger, Logger::Impl &impl, int fd, FILE *s
                 break;
             }
 
-            bool suppressed = logger.isSuppressed();
+            bool suppressed = self->isSuppressed();
 
             if (!suppressed && pipe.dupFd != -1) {
                 writeAll(pipe.dupFd, buf.data(), static_cast<size_t>(n));
@@ -245,19 +232,19 @@ static void startPipeCapture(Logger &logger, Logger::Impl &impl, int fd, FILE *s
                 std::string line = pipe.buffer.substr(0, pos);
                 pipe.buffer.erase(0, pos + 1);
                 if (!line.empty()) {
-                    logger.logFromPipe(pipe.level, line, pipe.channel.c_str());
+                    self->logFromPipe(pipe.level, line, pipe.channel.c_str());
                 }
             }
         }
 
         if (!pipe.buffer.empty()) {
-            logger.logFromPipe(pipe.level, pipe.buffer, pipe.channel.c_str());
+            self->logFromPipe(pipe.level, pipe.buffer, pipe.channel.c_str());
             pipe.buffer.clear();
         }
     });
 }
 
-static void stopPipeCapture(int fd, Logger::Impl::Pipe &pipe) {
+void Logger::stopPipeCapture(int fd, Pipe &pipe) {
     bool wasRunning = pipe.running.exchange(false);
     if (pipe.readFd != -1) {
         ::close(pipe.readFd);
@@ -405,8 +392,8 @@ void Logger::attachStandardStreams() {
     std::lock_guard<std::recursive_mutex> lock(impl_->mutex);
     if (impl_->coutHook || impl_->cerrHook) return;
 
-    startPipeCapture(*this, *impl_, STDOUT_FILENO, stdout, impl_->stdoutPipe, Level::Info, "stdout");
-    startPipeCapture(*this, *impl_, STDERR_FILENO, stderr, impl_->stderrPipe, Level::Warning, "stderr");
+    startPipeCapture(STDOUT_FILENO, stdout, impl_->stdoutPipe, Level::Info, "stdout");
+    startPipeCapture(STDERR_FILENO, stderr, impl_->stderrPipe, Level::Warning, "stderr");
     impl_->pipesAttached = impl_->stdoutPipe.running.load() || impl_->stderrPipe.running.load();
 
     impl_->originalCoutBuf = std::cout.rdbuf();

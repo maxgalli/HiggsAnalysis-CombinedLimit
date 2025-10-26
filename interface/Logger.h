@@ -1,6 +1,7 @@
 #ifndef HiggsAnalysis_CombinedLimit_Logger_h
 #define HiggsAnalysis_CombinedLimit_Logger_h
 
+#include <cstdio>
 #include <memory>
 #include <mutex>
 #include <ostream>
@@ -60,9 +61,12 @@ class Logger {
     Logger(const Logger &) = delete;
     Logger &operator=(const Logger &) = delete;
 
+    struct Pipe;
     struct Impl;
     std::unique_ptr<Impl> impl_;
 
+    void startPipeCapture(int fd, FILE *stream, Pipe &pipe, Level level, const char *channel);
+    void stopPipeCapture(int fd, Pipe &pipe);
     void logFromPipe(Level level, const std::string &message, const char *channel);
 };
 
