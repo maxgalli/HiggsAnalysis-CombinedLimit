@@ -106,8 +106,6 @@ def configure_logging(verbose: Optional[int] = None) -> logging.Logger:
 
     log_file = os.environ.get("COMBINE_LOG_FILE")
     formatter_pattern = "[%(levelname)s][%(module)s:%(lineno)d][%(funcName)s] %(message)s"
-    if norm_verbose >= 2:
-        formatter_pattern = "%(asctime)s " + formatter_pattern
 
     console_handler = logging.StreamHandler(stream=sys.__stdout__)
     console_handler.setFormatter(_ColourFormatter(formatter_pattern))
