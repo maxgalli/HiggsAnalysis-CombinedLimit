@@ -160,9 +160,9 @@ int main(int argc, char **argv) {
    std::cout << std::endl;
    splashFile.close(); 
   } else {
-   std::cout << " <<< Combine >>> " << std::endl;
-   // UPDATE THIS TO THE LATEST TAG WHENEVER RELEASED 
-   std::cout << Form(" <<< %s >>>",combineTagString.c_str() ) << std::endl;
+   CombineLogger::instance().log("combine.cpp", __LINE__, " <<< Combine >>> ", __func__);
+   CombineLogger::instance().log("combine.cpp", __LINE__,
+       std::string(" <<< ") + combineTagString + " >>>", __func__);
   }
 
   // now search for algo, and add option
