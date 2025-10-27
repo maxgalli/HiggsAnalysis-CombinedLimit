@@ -1,9 +1,7 @@
 import os.path
 from collections import defaultdict
 from math import *
-from sys import exit
-
-import logging
+from sys import exit, stderr, stdout
 
 import six
 
@@ -11,8 +9,6 @@ import ROOT
 from HiggsAnalysis.CombinedLimit.ModelTools import ModelBuilder
 
 from .DataFrameWrapper import DataFrameWrapper
-
-LOG = logging.getLogger("combine")
 
 RooArgSet_add_original = ROOT.RooArgSet.add
 
@@ -82,7 +78,7 @@ class ShapeBuilder(ModelBuilder):
     ## ------------------------------------------
     def doObservables(self):
         if self.options.verbose > 2:
-            LOG.debug("Using shapes.")
+            stderr.write("Using shapes. \n")
         self.prepareAllShapes()
         if len(self.DC.bins) > 1 or not self.options.forceNonSimPdf:
             ## start with just a few channels
@@ -93,7 +89,7 @@ class ShapeBuilder(ModelBuilder):
             for i, l in enumerate(self.DC.bins[5:]):
                 self.out.binCat.defineType(l, i + 5)
             if self.options.verbose > 1:
-                LOG.info("Will use category 'CMS_channel' to identify the %d channels", self.out.binCat.numTypes())
+                stderr.write("Will use category 'CMS_channel' to identify the %d channels\n" % self.out.binCat.numTypes())
             self.out.obs = ROOT.RooArgSet()
             self.out.obs.add(self.out.binVars)
             self.out.obs.add(self.out.binCat)
@@ -105,7 +101,8 @@ class ShapeBuilder(ModelBuilder):
 
     def doIndividualModels(self):
         if self.options.verbose:
-            LOG.info("Creating pdfs for individual modes (%d)...", len(self.DC.bins))
+            stderr.write("Creating pdfs for individual modes (%d): " % len(self.DC.bins))
+            stderr.flush()
         bbb_names = []
         for i, b in enumerate(self.DC.bins):
             # print "  + Getting model for bin %s" % (b)
@@ -187,6 +184,7 @@ class ShapeBuilder(ModelBuilder):
                     bgcoeffs.add(coeff)
                 else:
                     sigcoeffs.append(coeff)
+<<<<<<< HEAD
         if self.options.verbose > 1:
             LOG.debug("Creating RooAddPdf %s with %d elements", "pdf_bin" + b, coeffs.getSize())
         if channelBinParFlag:
@@ -220,6 +218,67 @@ class ShapeBuilder(ModelBuilder):
                     self.out.safe_import(arg)
                     if arg.getAttribute("createGaussianConstraint"):
                         if self.options.noOptimizePdf:
+=======
+            if self.options.verbose > 1:
+                print("Creating RooAddPdf {} with {} elements".format("pdf_bin" + b, coeffs.getSize()))
+            if channelBinParFlag:
+                if self.options.useCMSHistSum:
+                    prop = self.addObj(
+                        ROOT.CMSHistSum,
+                        "prop_bin%s" % b,
+                        "",
+                        pdfs.at(0).getXVar(),
+                        pdfs,
+                        coeffs,
+                    )
+                    prop.setAttribute("CachingPdf_NoClone", True)
+                else:
+                    prop = self.addObj(
+                        ROOT.CMSHistErrorPropagator,
+                        "prop_bin%s" % b,
+                        "",
+                        pdfs.at(0).getXVar(),
+                        pdfs,
+                        coeffs,
+                    )
+                prop.setAttribute("CachingPdf_Direct", True)
+                if self.DC.binParFlags[b][0] >= 0.0:
+                    bbb_args = prop.setupBinPars(self.DC.binParFlags[b][0])
+                    for bidx in range(bbb_args.getSize()):
+                        arg = bbb_args.at(bidx)
+                        n = arg.GetName()
+                        bbb_names.append(n)
+                        parname = n
+                        self.out.safe_import(arg)
+                        if arg.getAttribute("createGaussianConstraint"):
+                            if self.options.noOptimizePdf:
+                                self.doObj(
+                                    "%s_Pdf" % n,
+                                    "Gaussian",
+                                    "{}, {}_In[0,{}], {}".format(n, n, "-7,7", "1.0"),
+                                    True,
+                                )
+                            else:
+                                self.doObj(
+                                    "%s_Pdf" % n,
+                                    "SimpleGaussianConstraint",
+                                    "{}, {}_In[0,{}], {}".format(n, n, "-7,7", "1.0"),
+                                    True,
+                                )
+                            self.out.var(n).setVal(0)
+                            self.out.var(n).setError(1)
+                            if self.options.optimizeBoundNuisances:
+                                self.out.var(n).setAttribute("optimizeBounds")
+                        elif arg.getAttribute("createPoissonConstraint"):
+                            nom = arg.getVal()
+                            pval = ROOT.Math.normal_cdf_c(7)
+                            minObs = nom
+                            while minObs > 0 and (ROOT.TMath.Poisson(minObs, nom + 1) > pval):
+                                minObs -= sqrt(nom) if nom > 10 else 1
+                            maxObs = nom + 2
+                            while ROOT.TMath.Poisson(maxObs, nom + 1) > pval:
+                                # print "Poisson(maxObs = %d, %f) = %g > 1e-12" % (maxObs, args[0]+1, ROOT.TMath.Poisson(maxObs, args[0]+1))
+                                maxObs += sqrt(nom) if nom > 10 else 2
                             self.doObj(
                                 "%s_Pdf" % n,
                                 "Gaussian",
@@ -336,11 +395,17 @@ class ShapeBuilder(ModelBuilder):
                     pdf_s.setAttribute("forceGen" + self.pdfModes[b].title())
                     if not self.options.noBOnly:
                         pdf_b.setAttribute("forceGen" + self.pdfModes[b].title())
-                if self.options.verbose > 2:
-                    LOG.debug("Processed bin %s (%d/%d)", b, i + 1, len(self.DC.bins))
+                if self.options.verbose:
+                    if i > 0:
+                        stderr.write("\b\b\b\b\b")
+                    stderr.write(". %4d" % (i + 1))
+                    stderr.flush()
             else:
-                if self.options.verbose > 2:
-                    LOG.debug("Processed bin %s (%d/%d)", b, i + 1, len(self.DC.bins))
+                if self.options.verbose:
+                    if i > 0:
+                        stderr.write("\b\b\b\b\b")
+                    stderr.write(". %4d" % (i + 1))
+                    stderr.flush()
             if channelBinParFlag and not self.options.noHistFuncWrappers:
                 for idx in range(pdfs.getSize()):
                     wrapper = ROOT.CMSHistFuncWrapper(
@@ -371,7 +436,8 @@ class ShapeBuilder(ModelBuilder):
                     self.out.nuisPdfs.add(self.out.pdf(nuisanceName + "_Pdf"))
             self.out.defineSet("group_autoMCStats", bbb_nuisanceargset)
         if self.options.verbose:
-            LOG.info("Finished creating pdfs for individual modes.")
+            stderr.write("\b\b\b\bdone.\n")
+            stderr.flush()
 
     def doCombination(self):
         ## Contrary to Number-counting models, here each channel PDF already contains the nuisances
@@ -398,7 +464,8 @@ class ShapeBuilder(ModelBuilder):
                 if len(self.DC.systs) and (not self.options.noOptimizePdf) and self.options.moreOptimizeSimPdf == "cms":
                     simPdf.addExtraConstraints(self.out.nuisPdfs)
                 if self.options.verbose:
-                    LOG.debug("Importing combined pdf %s", simPdf.GetName())
+                    stderr.write("Importing combined pdf %s\n" % simPdf.GetName())
+                    stderr.flush()
 
                 # take care of any variables which were renamed (eg for "param")
                 paramString, renameParamString, toFreeze = self.getRenamingParameters()
@@ -445,11 +512,7 @@ class ShapeBuilder(ModelBuilder):
             arg = branchNodes.at(i)
             if arg.GetName() in dupNames and arg not in dupObjs:
                 if self.options.verbose > 1:
-                    LOG.warning(
-                        "Object %s is duplicated, will rename to %s",
-                        arg.GetName(),
-                        f"{arg.GetName()}_{postFix}",
-                    )
+                    stderr.write(f"Object {arg.GetName()} is duplicated, will rename to {arg.GetName()}_{postFix}\n")
                 arg.SetName(arg.GetName() + "_%s" % postFix)
             # if arg.GetName() in dupNames and arg in dupObjs:
             # print 'Objected %s is repeated' % arg.GetName()
@@ -552,18 +615,14 @@ class ShapeBuilder(ModelBuilder):
             if len(databins) > 0:
                 for i in databins.keys():
                     if i not in bgbins:
-                        LOG.warning(
-                            "Channel %s has bin %d filled in data but empty in all backgrounds",
-                            b,
-                            i,
-                        )
+                        stderr.write("Channel %s has bin %d filled in data but empty in all backgrounds\n" % (b, i))
         if shapeTypes.count("TH1"):
             self.TH1Observables = {}
             self.out.binVars = ROOT.RooArgSet()
             self.out.maxbins = max([shapeBins[k] for k in shapeBins.keys()])
             if self.options.optimizeTemplateBins:
                 if self.options.verbose > 1:
-                    LOG.info("Will use binning variable CMS_th1x with %d bins", self.out.maxbins)
+                    stderr.write("Will use binning variable CMS_th1x with %d bins\n" % self.out.maxbins)
                 self.doVar("CMS_th1x[0,%d]" % self.out.maxbins)
                 self.out.var("CMS_th1x").setBins(self.out.maxbins)
                 self.out.binVars.add(self.out.var("CMS_th1x"))
@@ -574,7 +633,7 @@ class ShapeBuilder(ModelBuilder):
                 for b in shapeBins:
                     binVar = "CMS_th1x_%s" % b
                     if self.options.verbose > 1:
-                        LOG.info("Will use binning variable %s with %d bins", binVar, shapeBins[b])
+                        stderr.write("Will use binning variable %s with %d bins\n" % (binVar, shapeBins[b]))
                     self.doVar("%s[0,%d]" % (binVar, shapeBins[b]))
                     self.out.var(binVar).setBins(shapeBins[b])
                     self.out.binVars.add(self.out.var(binVar))
@@ -587,8 +646,9 @@ class ShapeBuilder(ModelBuilder):
         ):  # remake RooArgSet for binVars with all Variables inside
             self.out.mode = "unbinned"
             if self.options.verbose > 1:
-                LOG.info("Will work with unbinned datasets")
-                LOG.debug("Observables: %s", list(shapeObs.keys()))
+                stderr.write("Will work with unbinned datasets\n")
+            if self.options.verbose > 1:
+                stderr.write("Observables: %s\n" % str(list(shapeObs.keys())))
             if len(list(shapeObs.keys())) != 1:
                 self.out.binVars = ROOT.RooArgSet()
                 for obs_key in shapeObs.keys():
@@ -604,8 +664,9 @@ class ShapeBuilder(ModelBuilder):
         else:
             self.out.mode = "binned"
             if self.options.verbose > 1:
-                LOG.info("Will make a binned dataset")
-                LOG.debug("Observables: %s", list(shapeObs.keys()))
+                stderr.write("Will make a binned dataset\n")
+            if self.options.verbose > 1:
+                stderr.write("Observables: %s\n" % str(list(shapeObs.keys())))
             if len(list(shapeObs.keys())) != 1:
                 raise RuntimeError("There's more than once choice of observables: %s\n" % str(list(shapeObs.keys())))
             self.out.binVars = list(shapeObs.values())[0]
@@ -827,7 +888,7 @@ class ShapeBuilder(ModelBuilder):
                 rds = ROOT.RooDataHist(name, name, ROOT.RooArgList(self.out.var(oname)), self.wsp)
                 rds.var = oname
                 if self.options.verbose > 2:
-                    LOG.debug("import (%s,%s) -> %s", finalNames[0], wname, rds.GetName())
+                    stderr.write(f"import ({finalNames[0]},{wname}) -> {rds.GetName()}\n")
                 _neverDelete.append(rds)
                 return rds
             else:
@@ -902,7 +963,7 @@ class ShapeBuilder(ModelBuilder):
             else:
                 return self.shape2Pdf(shapeNominal, channel, process)
         if shapeAlgo == "shapeN":
-            LOG.warning("The shapeN implementation in RooStats and L&S are different")
+            stderr.write("Warning: the shapeN implementation in RooStats and L&S are different\n")
         pdfs = ROOT.RooArgList(nominalPdf) if self.options.useHistPdf == "always" else ROOT.TList()
         if self.options.useHistPdf != "always":
             pdfs.Add(nominalPdf)
