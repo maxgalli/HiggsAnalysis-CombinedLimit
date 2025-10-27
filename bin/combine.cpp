@@ -343,9 +343,11 @@ int main(int argc, char **argv) {
 
   try {
      combiner.run(datacard, dataset, limit, limitErr, iToy, t, runToys);
-     if (verbose>0) CombineLogger::instance().printLog(); 
+     if (verbose>0) CombineLogger::instance().printLog();
   } catch (std::exception &ex) {
-     cerr << "Error when running the combination:\n\t" << ex.what() << std::endl;
+     CombineLogger::instance().log("combine.cpp", __LINE__,
+         std::string("[ERROR] Error when running the combination:\n\t") + ex.what(),
+         __func__);
      test->Close();
      return 3001;
   }
@@ -358,4 +360,3 @@ int main(int argc, char **argv) {
 
   if (vm.count("perfCounters")) PerfCounter::printAll();
 }
-
