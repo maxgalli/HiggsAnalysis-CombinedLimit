@@ -44,14 +44,6 @@ parser.add_option(
     help="Pass a given option to the physics model (can specify multiple times)",
 )
 parser.add_option(
-    "-v",
-    "--verbose",
-    dest="verbose",
-    default=None,
-    type="int",
-    help="Verbosity for logging output.",
-)
-parser.add_option(
     "",
     "--dump-datacard",
     dest="dumpCard",
