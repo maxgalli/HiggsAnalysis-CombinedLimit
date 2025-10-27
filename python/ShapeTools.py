@@ -213,51 +213,51 @@ class ShapeBuilder(ModelBuilder):
             if self.DC.binParFlags[b][0] >= 0.0:
                 bbb_args = prop.setupBinPars(self.DC.binParFlags[b][0])
                 for bidx in range(bbb_args.getSize()):
-                        arg = bbb_args.at(bidx)
-                        n = arg.GetName()
-                        bbb_names.append(n)
-                        parname = n
-                        self.out.safe_import(arg)
-                        if arg.getAttribute("createGaussianConstraint"):
-                            if self.options.noOptimizePdf:
-                                self.doObj(
-                                    "%s_Pdf" % n,
-                                    "Gaussian",
-                                    "{}, {}_In[0,{}], {}".format(n, n, "-7,7", "1.0"),
-                                    True,
-                                )
-                            else:
-                                self.doObj(
-                                    "%s_Pdf" % n,
-                                    "SimpleGaussianConstraint",
-                                    "{}, {}_In[0,{}], {}".format(n, n, "-7,7", "1.0"),
-                                    True,
-                                )
-                            self.out.var(n).setVal(0)
-                            self.out.var(n).setError(1)
-                            if self.options.optimizeBoundNuisances:
-                                self.out.var(n).setAttribute("optimizeBounds")
-                        elif arg.getAttribute("createPoissonConstraint"):
-                            nom = arg.getVal()
-                            pval = ROOT.Math.normal_cdf_c(7)
-                            minObs = nom
-                            while minObs > 0 and (ROOT.TMath.Poisson(minObs, nom + 1) > pval):
-                                minObs -= sqrt(nom) if nom > 10 else 1
-                            maxObs = nom + 2
-                            while ROOT.TMath.Poisson(maxObs, nom + 1) > pval:
-                                # print "Poisson(maxObs = %d, %f) = %g > 1e-12" % (maxObs, args[0]+1, ROOT.TMath.Poisson(maxObs, args[0]+1))
-                                maxObs += sqrt(nom) if nom > 10 else 2
+                    arg = bbb_args.at(bidx)
+                    n = arg.GetName()
+                    bbb_names.append(n)
+                    parname = n
+                    self.out.safe_import(arg)
+                    if arg.getAttribute("createGaussianConstraint"):
+                        if self.options.noOptimizePdf:
                             self.doObj(
                                 "%s_Pdf" % n,
-                                "Poisson",
-                                "%s_In[%d,%f,%f], %s, 1" % (n, nom, minObs, maxObs, n),
+                                "Gaussian",
+                                "{}, {}_In[0,{}], {}".format(n, n, "-7,7", "1.0"),
+                                True,
                             )
-                            if n.endswith("_prod"):
-                                parname = n[:-5]
-                        binconstraints.add(self.out.pdf("%s_Pdf" % n))
-                        self.out.var("%s_In" % n).setConstant(True)
-                        self.extraNuisances.append(self.out.var("%s" % parname))
-                        self.extraGlobalObservables.append(self.out.var("%s_In" % n))
+                        else:
+                            self.doObj(
+                                "%s_Pdf" % n,
+                                "SimpleGaussianConstraint",
+                                "{}, {}_In[0,{}], {}".format(n, n, "-7,7", "1.0"),
+                                True,
+                            )
+                        self.out.var(n).setVal(0)
+                        self.out.var(n).setError(1)
+                        if self.options.optimizeBoundNuisances:
+                            self.out.var(n).setAttribute("optimizeBounds")
+                    elif arg.getAttribute("createPoissonConstraint"):
+                        nom = arg.getVal()
+                        pval = ROOT.Math.normal_cdf_c(7)
+                        minObs = nom
+                        while minObs > 0 and (ROOT.TMath.Poisson(minObs, nom + 1) > pval):
+                            minObs -= sqrt(nom) if nom > 10 else 1
+                        maxObs = nom + 2
+                        while ROOT.TMath.Poisson(maxObs, nom + 1) > pval:
+                            # print "Poisson(maxObs = %d, %f) = %g > 1e-12" % (maxObs, args[0]+1, ROOT.TMath.Poisson(maxObs, args[0]+1))
+                            maxObs += sqrt(nom) if nom > 10 else 2
+                        self.doObj(
+                            "%s_Pdf" % n,
+                            "Poisson",
+                            "%s_In[%d,%f,%f], %s, 1" % (n, nom, minObs, maxObs, n),
+                        )
+                        if n.endswith("_prod"):
+                            parname = n[:-5]
+                    binconstraints.add(self.out.pdf("%s_Pdf" % n))
+                    self.out.var("%s_In" % n).setConstant(True)
+                    self.extraNuisances.append(self.out.var("%s" % parname))
+                    self.extraGlobalObservables.append(self.out.var("%s_In" % n))
                 if not self.out.var("ONE"):
                     self.doVar("ONE[1.0]")
                 sum_s = self.addObj(
