@@ -46,6 +46,7 @@ int main(int argc, char **argv) {
   int runToys;
   int    seed;
   string toysFile;
+  string logFile;
 
   vector<string> librariesToLoad;
   vector<string> runtimeDefines;
@@ -85,6 +86,8 @@ int main(int argc, char **argv) {
     ("datacard,d", po::value<string>(&datacard), "Datacard file (can also be specified directly without the -d or --datacard)")
     ("method,M",      po::value<string>(&whichMethod)->default_value("AsymptoticLimits"), methodsDesc.c_str())
     ("verbose,v",  po::value<int>(&verbose)->default_value(0), "Verbosity level (-1 = very quiet; 0 = quiet, 1 = verbose, 2+ = debug)")
+    ("log-file", po::value<string>(&logFile)->implicit_value("combine_logger.out"),
+     "Write structured log messages to the specified file (default: combine_logger.out)")
     ("help,h", "Produce help message")
     ;
   combiner.statOptions().add_options()
@@ -128,6 +131,12 @@ int main(int argc, char **argv) {
   } catch(...) {
     cerr << "Unidentified error parsing options." << endl;
     return 1000;
+  }
+
+  if (vm0.count("log-file")) {
+    logFile = vm0["log-file"].as<string>();
+    if (logFile.empty()) CombineLogger::instance().enableFileSink();
+    else CombineLogger::instance().enableFileSink(logFile);
   }
 
   // if help, print help
@@ -186,6 +195,12 @@ int main(int argc, char **argv) {
     return combine::logging::Level::Trace;
   };
   CombineLogger::instance().setVerbosity(mapVerboseToLevel(verbose));
+  if (vm.count("log-file")) {
+    if (logFile.empty()) CombineLogger::instance().enableFileSink();
+    else CombineLogger::instance().enableFileSink(logFile);
+  } else {
+    CombineLogger::instance().disableFileSink();
+  }
 
   if(datacard == "") {
     cerr << "Missing datacard file" << endl;

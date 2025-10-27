@@ -90,20 +90,22 @@ def configure_logging(verbose: Optional[int] = None) -> logging.Logger:
     logger.setLevel(_determine_level(verbose))
     logger.propagate = False
 
-    log_file = os.environ.get("COMBINE_LOG_FILE", "combine_logger.out")
+    log_file = os.environ.get("COMBINE_LOG_FILE")
     formatter_pattern = "%(asctime)s [%(levelname)s] [python] %(message)s"
 
     console_handler = logging.StreamHandler(stream=sys.__stdout__)
     console_handler.setFormatter(_ColourFormatter(formatter_pattern))
     logger.addHandler(console_handler)
 
-    try:
-        file_handler = logging.FileHandler(log_file, mode="a")
-    except OSError:
-        file_handler = None
-    if file_handler is not None:
-        file_handler.setFormatter(logging.Formatter(formatter_pattern))
-        logger.addHandler(file_handler)
+    file_handler = None
+    if log_file:
+        try:
+            file_handler = logging.FileHandler(log_file, mode="a")
+        except OSError:
+            file_handler = None
+        if file_handler is not None:
+            file_handler.setFormatter(logging.Formatter(formatter_pattern))
+            logger.addHandler(file_handler)
 
     sys.stdout = _LoggerStream(logger, logging.INFO)
     sys.stderr = _LoggerStream(logger, logging.ERROR)

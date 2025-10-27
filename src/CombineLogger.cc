@@ -3,7 +3,7 @@
 #include <sstream>
 int CombineLogger::nLogs = 0;
 
-const char *CombineLogger::fName = "combine_logger.out";
+std::string CombineLogger::fName = "combine_logger.out";
 
 CombineLogger *CombineLogger::pL = nullptr;
 
@@ -14,10 +14,11 @@ CombineLogger &CombineLogger::instance() {
 	return *pL;
 }
 
-CombineLogger::CombineLogger() : level_(combine::logging::Level::Info) {
-	::setenv("COMBINE_LOG_FILE", fName, 1);
+CombineLogger::CombineLogger() :
+	level_(combine::logging::Level::Info),
+	fileSinkEnabled_(false) {
 	auto &logger = combine::logging::Logger::instance();
-	logger.initialize(level_, fName, true);
+	logger.initialize(level_, std::string(), true);
 }
 
 void CombineLogger::log(const std::string &_file, const int _lineN, const std::string &_logmsg, const std::string &_function) {
@@ -31,10 +32,11 @@ void CombineLogger::log(const std::string &_file, const int _lineN, const std::s
 		return level_;
 	};
 	logger.log(detectLevel(_logmsg), _logmsg, _file.c_str(), _lineN, _function.c_str(), "combine");
-	++nLogs;
+	if (fileSinkEnabled_) ++nLogs;
 }
 
 void CombineLogger::printLog() {
+	if (!fileSinkEnabled_) return;
 	auto &logger = combine::logging::Logger::instance();
 	std::ostringstream oss;
 	oss << nLogs << " log messages saved to " << fName;
@@ -48,6 +50,27 @@ void CombineLogger::setVerbosity(combine::logging::Level level) {
 
 combine::logging::Level CombineLogger::verbosity() const {
 	return level_;
+}
+
+void CombineLogger::enableFileSink(const std::string &path, bool append) {
+	const std::string previousPath = fName;
+	if (!path.empty()) {
+		fName = path;
+	}
+	::setenv("COMBINE_LOG_FILE", fName.c_str(), 1);
+	const bool needReopen = !fileSinkEnabled_ || append || fName != previousPath;
+	if (needReopen) {
+		combine::logging::Logger::instance().setFileSink(fName, append);
+	}
+	if (!fileSinkEnabled_ || fName != previousPath) nLogs = 0;
+	fileSinkEnabled_ = true;
+}
+
+void CombineLogger::disableFileSink() {
+	if (!fileSinkEnabled_) return;
+	combine::logging::Logger::instance().clearFileSink();
+	fileSinkEnabled_ = false;
+	::unsetenv("COMBINE_LOG_FILE");
 }
 
 CombineLogger::~CombineLogger() {
