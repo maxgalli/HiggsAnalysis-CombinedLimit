@@ -1,10 +1,7 @@
 #include "../interface/Logger.h"
 
-#include <atomic>
-#include <array>
 #include <chrono>
 #include <cstdio>
-#include <cerrno>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -12,7 +9,6 @@
 #include <memory>
 #include <sstream>
 #include <streambuf>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -104,16 +100,6 @@ const char *levelToAnsi(combine::logging::Level level) {
 
 namespace combine::logging {
 
-struct Logger::Pipe {
-    int readFd = -1;
-    int dupFd = -1;
-    std::thread reader;
-    std::string buffer;
-    std::atomic<bool> running{false};
-    Level level = Level::Info;
-    std::string channel;
-};
-
 struct Logger::Impl {
     Level level = Level::Info;
     bool consoleColors = true;
@@ -128,10 +114,6 @@ struct Logger::Impl {
 
     std::unique_ptr<LoggingStreambuf> coutHook;
     std::unique_ptr<LoggingStreambuf> cerrHook;
-
-    Pipe stdoutPipe;
-    Pipe stderrPipe;
-    bool pipesAttached = false;
 
     std::ofstream fileStream;
     std::recursive_mutex mutex;
@@ -151,118 +133,6 @@ struct Logger::Impl {
         }
     }
 };
-
-static void writeAll(int fd, const char *data, size_t size) {
-    size_t offset = 0;
-    while (offset < size) {
-        ssize_t written = ::write(fd, data + offset, size - offset);
-        if (written < 0) {
-            if (errno == EINTR) continue;
-            break;
-        }
-        offset += static_cast<size_t>(written);
-    }
-}
-
-void Logger::startPipeCapture(int fd, FILE *stream, Pipe &pipe, Level level, const char *channel) {
-    if (pipe.running.load()) return;
-
-    int fds[2];
-    if (::pipe(fds) != 0) return;
-
-    pipe.dupFd = ::dup(fd);
-    if (pipe.dupFd == -1) {
-        ::close(fds[0]);
-        ::close(fds[1]);
-        return;
-    }
-
-    if (stream) {
-        ::fflush(stream);
-    }
-
-    if (::dup2(fds[1], fd) != 0) {
-        ::close(fds[0]);
-        ::close(fds[1]);
-        ::close(pipe.dupFd);
-        pipe.dupFd = -1;
-        return;
-    }
-
-    ::close(fds[1]);
-
-    pipe.readFd = fds[0];
-    pipe.level = level;
-    pipe.channel = channel ? channel : "";
-    pipe.buffer.clear();
-    pipe.running.store(true);
-
-    if (stream) {
-        if (fd == STDOUT_FILENO) {
-            setvbuf(stream, nullptr, _IOLBF, 0);
-        } else if (fd == STDERR_FILENO) {
-            setvbuf(stream, nullptr, _IONBF, 0);
-        }
-    }
-
-    Logger *self = this;
-    pipe.reader = std::thread([self, &pipe]() {
-        std::array<char, 512> buf{};
-        while (pipe.running.load()) {
-            ssize_t n = ::read(pipe.readFd, buf.data(), buf.size());
-            if (n <= 0) {
-                if (n == -1 && errno == EINTR) continue;
-                break;
-            }
-
-            bool suppressed = self->isSuppressed();
-
-            if (!suppressed && pipe.dupFd != -1) {
-                writeAll(pipe.dupFd, buf.data(), static_cast<size_t>(n));
-            }
-
-            if (suppressed) {
-                pipe.buffer.clear();
-                continue;
-            }
-
-            pipe.buffer.append(buf.data(), static_cast<size_t>(n));
-            size_t pos;
-            while ((pos = pipe.buffer.find('\n')) != std::string::npos) {
-                std::string line = pipe.buffer.substr(0, pos);
-                pipe.buffer.erase(0, pos + 1);
-                if (!line.empty()) {
-                    self->logFromPipe(pipe.level, line, pipe.channel.c_str());
-                }
-            }
-        }
-
-        if (!pipe.buffer.empty()) {
-            self->logFromPipe(pipe.level, pipe.buffer, pipe.channel.c_str());
-            pipe.buffer.clear();
-        }
-    });
-}
-
-void Logger::stopPipeCapture(int fd, Pipe &pipe) {
-    bool wasRunning = pipe.running.exchange(false);
-    if (pipe.readFd != -1) {
-        ::close(pipe.readFd);
-        pipe.readFd = -1;
-    }
-    if (wasRunning && pipe.reader.joinable()) {
-        pipe.reader.join();
-    } else if (pipe.reader.joinable()) {
-        pipe.reader.join();
-    }
-    if (pipe.dupFd != -1) {
-        ::dup2(pipe.dupFd, fd);
-        ::close(pipe.dupFd);
-        pipe.dupFd = -1;
-    }
-    pipe.channel.clear();
-    pipe.buffer.clear();
-}
 
 Logger::Logger() : impl_(new Impl()) {
     impl_->ensureConsoleCapability();
@@ -359,20 +229,9 @@ void Logger::log(Level level, const std::string &message, const char *file, int 
             consolePayload = std::string(levelToAnsi(level)) + consolePayload + "\033[0m";
         }
 
-        bool wrote = false;
-        if (impl_->pipesAttached) {
-            int targetFd = (level >= Level::Warning) ? impl_->stderrPipe.dupFd : impl_->stdoutPipe.dupFd;
-            if (targetFd != -1) {
-                writeAll(targetFd, consolePayload.data(), consolePayload.size());
-                wrote = true;
-            }
-        }
-
-        if (!wrote) {
-            auto &out = impl_->streamForLevel(level);
-            out << consolePayload;
-            out.flush();
-        }
+        auto &out = impl_->streamForLevel(level);
+        out << consolePayload;
+        out.flush();
     }
 
     if (impl_->fileStream.is_open()) {
@@ -383,18 +242,9 @@ void Logger::log(Level level, const std::string &message, const char *file, int 
     }
 }
 
-void Logger::logFromPipe(Level level, const std::string &message, const char *channel) {
-    if (message.empty()) return;
-    log(level, message, nullptr, 0, nullptr, channel, true);
-}
-
 void Logger::attachStandardStreams() {
     std::lock_guard<std::recursive_mutex> lock(impl_->mutex);
     if (impl_->coutHook || impl_->cerrHook) return;
-
-    startPipeCapture(STDOUT_FILENO, stdout, impl_->stdoutPipe, Level::Info, "stdout");
-    startPipeCapture(STDERR_FILENO, stderr, impl_->stderrPipe, Level::Warning, "stderr");
-    impl_->pipesAttached = impl_->stdoutPipe.running.load() || impl_->stderrPipe.running.load();
 
     impl_->originalCoutBuf = std::cout.rdbuf();
     impl_->originalCerrBuf = std::cerr.rdbuf();
@@ -418,11 +268,6 @@ void Logger::attachStandardStreams() {
 
 void Logger::detachStandardStreams() {
     std::lock_guard<std::recursive_mutex> lock(impl_->mutex);
-    if (impl_->pipesAttached) {
-        stopPipeCapture(STDOUT_FILENO, impl_->stdoutPipe);
-        stopPipeCapture(STDERR_FILENO, impl_->stderrPipe);
-        impl_->pipesAttached = false;
-    }
     if (impl_->originalCoutBuf) {
         std::cout.rdbuf(impl_->originalCoutBuf);
         impl_->originalCoutBuf = nullptr;

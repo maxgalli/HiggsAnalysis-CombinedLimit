@@ -118,12 +118,15 @@ bool AsymptoticLimits::run(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStat
         const char *rname = mc_s->GetParametersOfInterest()->first()->GetName();
         std::cout << "\n -- AsymptoticLimits ( " << rule_ <<  " ) --\n";
         if (what_ == "singlePoint") {
-            printf("Observed %s for %s = %.1f: %6.4f \n", rule_.c_str(), rname, rValue_, limit);
+            CombineLogger::instance().log("AsymptoticLimits.cc", __LINE__,
+                std::string(Form("Observed %s for %s = %.1f: %6.4f", rule_.c_str(), rname, rValue_, limit)), __func__);
         } else if (ret && what_ != "expected") {
-            printf("Observed Limit: %s < %6.4f\n", rname, limit);
+            CombineLogger::instance().log("AsymptoticLimits.cc", __LINE__,
+                std::string(Form("Observed Limit: %s < %6.4f", rname, limit)), __func__);
         }
         for (std::vector<std::pair<float,float> >::const_iterator it = expected.begin(), ed = expected.end(); it != ed; ++it) {
-            printf("Expected %4.1f%%: %s < %6.4f\n", it->first*100, rname, it->second);
+            CombineLogger::instance().log("AsymptoticLimits.cc", __LINE__,
+                std::string(Form("Expected %4.1f%%: %s < %6.4f", it->first*100, rname, it->second)), __func__);
         }
         std::cout << std::endl;
     }
@@ -344,7 +347,8 @@ double AsymptoticLimits::getCLs(RooRealVar &r, double rVal, bool getAlsoExpected
         if (doCLs_) { *limit = (pb != 0 ? pmu/pb : 0); *limitErr = 0 ; }
 	else { *limit = (pmu); *limitErr = 0; }
         Combine::commitPoint(true, quantiles[iq]);
-        if (verbose > 0) printf("Expected %4.1f%%: Pmu = %.5f  1-Pb = %.5f   CLs = %.5f\n", quantiles[iq]*100, pmu, pb, pmu/pb);
+        if (verbose > 0) CombineLogger::instance().log("AsymptoticLimits.cc", __LINE__,
+            std::string(Form("Expected %4.1f%%: Pmu = %.5f  1-Pb = %.5f   CLs = %.5f", quantiles[iq]*100, pmu, pb, pmu/pb)), __func__);
     }
   }
   return doCLs_ ? CLs : Pmu ; 

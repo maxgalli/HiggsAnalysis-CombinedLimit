@@ -318,7 +318,9 @@ bool Combine::mklimit(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooStats::Mo
     w->Print("V");
   } */
   timer.Stop(); t_cpu_ = timer.CpuTime()/60.; t_real_ = timer.RealTime()/60.;
-  printf("Done in %.2f min (cpu), %.2f min (real)\n", t_cpu_, t_real_);
+  CombineLogger::instance().log("Combine.cc", __LINE__,
+      std::string(Form("Done in %.2f min (cpu), %.2f min (real)", t_cpu_, t_real_)),
+      __func__);
   return ret;
 }
 
