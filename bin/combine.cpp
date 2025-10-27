@@ -189,8 +189,12 @@ int main(int argc, char **argv) {
   }
 
   if (verbose < -1 || verbose > 3) {
-    cerr << "Invalid verbosity level " << verbose
-         << ". Allowed range is -1 (silent) to 3." << endl;
+    CombineLogger::instance().log(
+        "combine.cpp",
+        __LINE__,
+        std::string("[ERROR] Invalid verbosity level ") + std::to_string(verbose) +
+            ". Allowed range is -1 (silent) to 3.",
+        __func__);
     return 1004;
   }
 
