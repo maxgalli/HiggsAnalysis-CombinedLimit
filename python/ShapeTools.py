@@ -193,26 +193,26 @@ class ShapeBuilder(ModelBuilder):
             if self.options.useCMSHistSum:
                 prop = self.addObj(
                     ROOT.CMSHistSum,
-                        "prop_bin%s" % b,
-                        "",
-                        pdfs.at(0).getXVar(),
-                        pdfs,
-                        coeffs,
-                    )
-                    prop.setAttribute("CachingPdf_NoClone", True)
-                else:
-                    prop = self.addObj(
-                        ROOT.CMSHistErrorPropagator,
-                        "prop_bin%s" % b,
-                        "",
-                        pdfs.at(0).getXVar(),
-                        pdfs,
-                        coeffs,
-                    )
-                prop.setAttribute("CachingPdf_Direct", True)
-                if self.DC.binParFlags[b][0] >= 0.0:
-                    bbb_args = prop.setupBinPars(self.DC.binParFlags[b][0])
-                    for bidx in range(bbb_args.getSize()):
+                    "prop_bin%s" % b,
+                    "",
+                    pdfs.at(0).getXVar(),
+                    pdfs,
+                    coeffs,
+                )
+                prop.setAttribute("CachingPdf_NoClone", True)
+            else:
+                prop = self.addObj(
+                    ROOT.CMSHistErrorPropagator,
+                    "prop_bin%s" % b,
+                    "",
+                    pdfs.at(0).getXVar(),
+                    pdfs,
+                    coeffs,
+                )
+            prop.setAttribute("CachingPdf_Direct", True)
+            if self.DC.binParFlags[b][0] >= 0.0:
+                bbb_args = prop.setupBinPars(self.DC.binParFlags[b][0])
+                for bidx in range(bbb_args.getSize()):
                         arg = bbb_args.at(bidx)
                         n = arg.GetName()
                         bbb_names.append(n)
