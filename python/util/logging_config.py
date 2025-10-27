@@ -14,6 +14,24 @@ _DEFAULT_LEVEL = logging.INFO
 _CONFIGURED = False
 
 
+def _normalize_verbose(level: Optional[int]) -> int:
+    if level is None:
+        env_value = os.environ.get("COMBINE_VERBOSE")
+        if env_value is not None and env_value.strip():
+            level = env_value
+    if level is None:
+        return 0
+    try:
+        level_int = int(level)
+    except (TypeError, ValueError):
+        print("ERROR: Verbosity must be an integer between -1 and 3.", file=sys.stderr)
+        sys.exit(2)
+    if level_int < -1 or level_int > 3:
+        print("ERROR: Verbosity must be an integer between -1 and 3.", file=sys.stderr)
+        sys.exit(2)
+    return level_int
+
+
 class _ColourFormatter(logging.Formatter):
     _COLOURS = {
         logging.DEBUG: "\033[38;5;39m",
@@ -61,33 +79,29 @@ class _LoggerStream:
         return False
 
 
-def _determine_level(level: Optional[int]) -> int:
-    if level is None:
-        env_value = os.environ.get("COMBINE_VERBOSE")
-        if env_value is not None and env_value.lstrip("+-").isdigit():
-            level = int(env_value)
-    if level is None:
-        return _DEFAULT_LEVEL
-    if level <= -1:
-        return logging.WARNING
+def _determine_level(level: int) -> int:
+    if level == -1:
+        return logging.CRITICAL + 1
     if level == 0:
         return logging.INFO
     if level == 1:
-        return logging.INFO
-    if level == 2:
         return logging.DEBUG
-    return logging.DEBUG
+    if level >= 2:
+        return logging.NOTSET
+    return _DEFAULT_LEVEL
 
 
 def configure_logging(verbose: Optional[int] = None) -> logging.Logger:
     global _CONFIGURED
     logger = logging.getLogger(_LOGGER_NAME)
+    norm_verbose = _normalize_verbose(verbose)
     if _CONFIGURED:
-        if verbose is not None:
-            logger.setLevel(_determine_level(verbose))
+        logger.setLevel(_determine_level(norm_verbose))
+        logger.disabled = norm_verbose == -1
         return logger
 
-    logger.setLevel(_determine_level(verbose))
+    logger.setLevel(_determine_level(norm_verbose))
+    logger.disabled = norm_verbose == -1
     logger.propagate = False
 
     log_file = os.environ.get("COMBINE_LOG_FILE")
@@ -97,13 +111,12 @@ def configure_logging(verbose: Optional[int] = None) -> logging.Logger:
     console_handler.setFormatter(_ColourFormatter(formatter_pattern))
     logger.addHandler(console_handler)
 
-    file_handler = None
     if log_file:
         try:
             file_handler = logging.FileHandler(log_file, mode="a")
         except OSError:
             file_handler = None
-        if file_handler is not None:
+        else:
             file_handler.setFormatter(logging.Formatter(formatter_pattern))
             logger.addHandler(file_handler)
 

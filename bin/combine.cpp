@@ -85,7 +85,8 @@ int main(int argc, char **argv) {
   desc.add_options()
     ("datacard,d", po::value<string>(&datacard), "Datacard file (can also be specified directly without the -d or --datacard)")
     ("method,M",      po::value<string>(&whichMethod)->default_value("AsymptoticLimits"), methodsDesc.c_str())
-    ("verbose,v",  po::value<int>(&verbose)->default_value(0), "Verbosity level (-1 = very quiet; 0 = quiet, 1 = verbose, 2+ = debug)")
+    ("verbose,v",  po::value<int>(&verbose)->default_value(0),
+     "Verbosity level (-1 = silent, 0 = default, 1 = verbose, 2 = debug, 3 = trace)")
     ("log-file", po::value<string>(&logFile)->implicit_value("combine_logger.out"),
      "Write structured log messages to the specified file (default: combine_logger.out)")
     ("help,h", "Produce help message")
@@ -187,12 +188,21 @@ int main(int argc, char **argv) {
     return 1000;
   }
 
+  if (verbose < -1 || verbose > 3) {
+    cerr << "Invalid verbosity level " << verbose
+         << ". Allowed range is -1 (silent) to 3." << endl;
+    return 1004;
+  }
+
   auto mapVerboseToLevel = [](int v) {
-    if (v <= -1) return combine::logging::Level::Warning;
-    if (v == 0) return combine::logging::Level::Info;
-    if (v == 1) return combine::logging::Level::Info;
-    if (v == 2) return combine::logging::Level::Debug;
-    return combine::logging::Level::Trace;
+    switch (v) {
+      case -1: return combine::logging::Level::Off;
+      case 0:  return combine::logging::Level::Info;
+      case 1:  return combine::logging::Level::Debug;
+      case 2:  return combine::logging::Level::Trace;
+      case 3:  return combine::logging::Level::Trace;
+      default: return combine::logging::Level::Info;
+    }
   };
   CombineLogger::instance().setVerbosity(mapVerboseToLevel(verbose));
   if (vm.count("log-file")) {

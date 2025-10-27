@@ -64,7 +64,7 @@ def addDatacardParserOptions(parser):
         dest="verbose",
         default=0,
         type="int",
-        help="Verbosity level (0 = quiet, 1 = verbose, 2+ = more)",
+        help="Verbosity level (-1 = silent, 0 = default, 1 = verbose, 2 = debug, 3 = trace)",
     )
     parser.add_option(
         "-m",
