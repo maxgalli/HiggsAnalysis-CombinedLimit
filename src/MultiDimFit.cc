@@ -5,6 +5,7 @@
 
 #include "TMath.h"
 #include "TFile.h"
+#include "TString.h"
 #include "RooArgSet.h"
 #include "RooArgList.h"
 #include "RooRandom.h"
@@ -295,14 +296,18 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
     switch(algo_) {
         case None: 
 	  {
-            std::cout << "\n --- MultiDimFit ---" << std::endl;
-            std::cout << "best fit parameter values: "  << std::endl;
+            CombineLogger::instance().log("MultiDimFit.cc", __LINE__, "\n --- MultiDimFit ---", __func__);
+            CombineLogger::instance().log("MultiDimFit.cc", __LINE__, "best fit parameter values:", __func__);
             int len = poi_[0].length();
             for (int i = 0, n = poi_.size(); i < n; ++i) {
                 len = std::max<int>(len, poi_[i].length());
             }
             for (int i = 0, n = poi_.size(); i < n; ++i) {
-                printf("   %*s :  %+8.3f\n", len, poi_[i].c_str(), poiVals_[i]);
+                CombineLogger::instance().log(
+                    "MultiDimFit.cc",
+                    __LINE__,
+                    std::string(Form("   %*s :  %+8.3f", len, poi_[i].c_str(), poiVals_[i])),
+                    __func__);
             }
 	  }
           if(res.get() && saveFitResult_) saveResult(*res);
@@ -448,8 +453,9 @@ void MultiDimFit::initOnce(RooWorkspace *w, RooStats::ModelConfig *mc_s) {
 
 void MultiDimFit::doSingles(RooFitResult &res)
 {
-    std::cout << "\n --- MultiDimFit ---" << std::endl;
-    std::cout << "best fit parameter values and profile-likelihood uncertainties: "  << std::endl;
+    CombineLogger::instance().log("MultiDimFit.cc", __LINE__, "\n --- MultiDimFit ---", __func__);
+    CombineLogger::instance().log("MultiDimFit.cc", __LINE__,
+        "best fit parameter values and profile-likelihood uncertainties:", __func__);
     int len = poi_[0].length();
     for (int i = 0, n = poi_.size(); i < n; ++i) {
         len = std::max<int>(len, poi_[i].length());
@@ -459,18 +465,22 @@ void MultiDimFit::doSingles(RooFitResult &res)
 	if (!rfloat) {
 		rfloat = res.constPars().find(poi_[i].c_str());
 	}
-        RooRealVar *rf = dynamic_cast<RooRealVar*>(rfloat);
+	RooRealVar *rf = dynamic_cast<RooRealVar*>(rfloat);
         double bestFitVal = rf->getVal();
 
         double hiErr = +(rf->hasRange("err68") ? rf->getMax("err68") - bestFitVal : rf->getAsymErrorHi());
         double loErr = -(rf->hasRange("err68") ? rf->getMin("err68") - bestFitVal : rf->getAsymErrorLo());
         double maxError = std::max<double>(std::max<double>(hiErr, loErr), rf->getError());
         if (fabs(hiErr) < 0.001*maxError){ 
-		std::cout << " Warning - No valid high-error found, will report difference to maximum of range for : " << rf->GetName() << std::endl;
+		CombineLogger::instance().log("MultiDimFit.cc", __LINE__,
+                std::string(Form("[WARNING] No valid high-error found, will report difference to maximum of range for : %s", rf->GetName())),
+                __func__);
 		hiErr = -bestFitVal + rf->getMax();
 	}
         if (fabs(loErr) < 0.001*maxError) {
-		std::cout << " Warning - No valid low-error found, will report difference to minimum of range for : " << rf->GetName() << std::endl;
+		CombineLogger::instance().log("MultiDimFit.cc", __LINE__,
+                std::string(Form("[WARNING] No valid low-error found, will report difference to minimum of range for : %s", rf->GetName())),
+                __func__);
 		loErr = +bestFitVal - rf->getMin();
 	}
         
@@ -483,11 +493,15 @@ void MultiDimFit::doSingles(RooFitResult &res)
 
         if (do95_ && rf->hasRange("err95")) {
             if (fabs(hiErr95) < 0.001*maxError95){ 
-		std::cout << " Warning - No valid high-error (for 95%) found, will report difference to maximum of range for : " << rf->GetName() << std::endl;
+		CombineLogger::instance().log("MultiDimFit.cc", __LINE__,
+                    std::string(Form("[WARNING] No valid high-error (for 95%%) found, will report difference to maximum of range for : %s", rf->GetName())),
+                    __func__);
 		hiErr95 = -bestFitVal + rf->getMax();
 	    }
             if (fabs(loErr95) < 0.001*maxError95) {
-		std::cout << " Warning - No valid low-error (for 95%) found, will report difference to minimum of range for : " << rf->GetName() << std::endl;
+		CombineLogger::instance().log("MultiDimFit.cc", __LINE__,
+                    std::string(Form("[WARNING] No valid low-error (for 95%%) found, will report difference to minimum of range for : %s", rf->GetName())),
+                    __func__);
 		loErr95 = +bestFitVal - rf->getMin();
 	    }
 	    poiVals_[i] = bestFitVal - loErr95; Combine::commitPoint(true, /*quantile=*/-0.05);
@@ -495,19 +509,27 @@ void MultiDimFit::doSingles(RooFitResult &res)
             //poiVals_[i] = rf->getMax("err95"); Combine::commitPoint(true, /*quantile=*/-0.05);
             //poiVals_[i] = rf->getMin("err95"); Combine::commitPoint(true, /*quantile=*/0.05);
             poiVals_[i] = bestFitVal;
-            printf("   %*s :  %+8.3f   %+6.3f/%+6.3f (68%%)    %+6.3f/%+6.3f (95%%) \n", len, poi_[i].c_str(), 
-                    poiVals_[i], -loErr, hiErr, -loErr95, hiErr95);
+            CombineLogger::instance().log(
+                "MultiDimFit.cc",
+                __LINE__,
+                std::string(Form("   %*s :  %+8.3f   %+6.3f/%+6.3f (68%%)    %+6.3f/%+6.3f (95%%) ",
+                    len, poi_[i].c_str(), poiVals_[i], -loErr, hiErr, -loErr95, hiErr95)),
+                __func__);
         } else {
             poiVals_[i] = bestFitVal;
-            printf("   %*s :  %+8.3f   %+6.3f/%+6.3f (68%%)\n", len, poi_[i].c_str(), 
-                    poiVals_[i], -loErr, hiErr);
+            CombineLogger::instance().log(
+                "MultiDimFit.cc",
+                __LINE__,
+                std::string(Form("   %*s :  %+8.3f   %+6.3f/%+6.3f (68%%)",
+                    len, poi_[i].c_str(), poiVals_[i], -loErr, hiErr)),
+                __func__);
         }
     }
 }
 
 void MultiDimFit::doImpact(RooFitResult &res, RooAbsReal &nll) {
-  std::cout << "\n --- MultiDimFit ---" << std::endl;
-  std::cout << "Parameter impacts: " << std::endl;
+  CombineLogger::instance().log("MultiDimFit.cc", __LINE__, "\n --- MultiDimFit ---", __func__);
+  CombineLogger::instance().log("MultiDimFit.cc", __LINE__, "Parameter impacts:", __func__);
 
   // Save the initial parameters here to reset between NPs
   std::unique_ptr<RooArgSet> params(nll.getParameters((const RooArgSet *)0));
@@ -524,11 +546,11 @@ void MultiDimFit::doImpact(RooFitResult &res, RooAbsReal &nll) {
   for (int i = 0, n = poi_.size(); i < n; ++i) {
     len = std::max<int>(len, poi_[i].length());
   }
-  printf("  %-*s :   %-21s", len, "Parameter", "Best-fit");
+  std::string header = Form("  %-*s :   %-21s", len, "Parameter", "Best-fit");
   for (int i = 0, n = specifiedNuis_.size(); i < n; ++i) {
-    printf("  %-13s", specifiedNuis_[i].c_str());
+    header += Form("  %-13s", specifiedNuis_[i].c_str());
   }
-  printf("\n");
+  CombineLogger::instance().log("MultiDimFit.cc", __LINE__, header, __func__);
 
 
   for (int i = 0, n = poi_.size(); i < n; ++i) {
@@ -543,7 +565,7 @@ void MultiDimFit::doImpact(RooFitResult &res, RooAbsReal &nll) {
                                            : rf->getAsymErrorHi());
     double loErr = -(rf->hasRange("err68") ? rf->getMin("err68") - bestFitVal
                                            : rf->getAsymErrorLo());
-      printf("  %-*s : %+8.3f  %+6.3f/%+6.3f", len, poi_[i].c_str(),
+      std::string line = Form("  %-*s : %+8.3f  %+6.3f/%+6.3f", len, poi_[i].c_str(),
                     bestFitVal, -loErr, hiErr);
     // Reset all parameters to initial state
     *params = init_snap;
@@ -584,9 +606,9 @@ void MultiDimFit::doImpact(RooFitResult &res, RooAbsReal &nll) {
       }
     }
     for (unsigned j = 0; j < specifiedVals.size(); ++j) {
-        printf("  %+6.3f/%+6.3f", impactLo[j], impactHi[j]);
+        line += Form("  %+6.3f/%+6.3f", impactLo[j], impactHi[j]);
     }
-    printf("\n");
+    CombineLogger::instance().log("MultiDimFit.cc", __LINE__, line, __func__);
   }
 }
 
