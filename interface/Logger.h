@@ -38,6 +38,7 @@ class Logger {
 
     void setFileSink(const std::string &filePath, bool append = false);
     void clearFileSink();
+    void setIncludeTimestamp(bool include);
 
     void log(Level level, const std::string &message,
              const char *file = nullptr,

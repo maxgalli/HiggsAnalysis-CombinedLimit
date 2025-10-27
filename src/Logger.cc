@@ -106,6 +106,7 @@ struct Logger::Impl {
     bool consoleColorCapable = true;
     bool initialized = false;
     unsigned suppressionDepth = 0;
+    bool includeTimestamp = false;
 
     std::unique_ptr<std::ostream> consoleOut;
     std::unique_ptr<std::ostream> consoleErr;
@@ -203,13 +204,20 @@ void Logger::clearFileSink() {
     }
 }
 
+void Logger::setIncludeTimestamp(bool include) {
+    std::lock_guard<std::recursive_mutex> lock(impl_->mutex);
+    impl_->includeTimestamp = include;
+}
+
 void Logger::log(Level level, const std::string &message, const char *file, int line,
                  const char *function, const char *channel, bool skipConsole) {
     std::lock_guard<std::recursive_mutex> lock(impl_->mutex);
     if (level < impl_->level || impl_->suppressionDepth > 0) return;
 
     std::ostringstream formatted;
-    formatted << "[" << makeTimestamp() << "] ";
+    if (impl_->includeTimestamp) {
+        formatted << "[" << makeTimestamp() << "] ";
+    }
     formatted << "[" << levelToString(level) << "]";
     if (channel && channel[0]) formatted << "[" << channel << "]";
     if (file && line > 0) {

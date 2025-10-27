@@ -208,6 +208,7 @@ int main(int argc, char **argv) {
     }
   };
   CombineLogger::instance().setVerbosity(mapVerboseToLevel(verbose));
+  combine::logging::Logger::instance().setIncludeTimestamp(verbose >= 2);
   if (vm.count("log-file")) {
     if (logFile.empty()) CombineLogger::instance().enableFileSink();
     else CombineLogger::instance().enableFileSink(logFile);
