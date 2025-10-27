@@ -159,11 +159,10 @@ int main(int argc, char **argv) {
    }
    std::cout << std::endl;
    splashFile.close(); 
-  } else {
-   CombineLogger::instance().log("combine.cpp", __LINE__, " <<< Combine >>> ", __func__);
-   CombineLogger::instance().log("combine.cpp", __LINE__,
-       std::string(" <<< ") + combineTagString + " >>>", __func__);
   }
+  CombineLogger::instance().log("combine.cpp", __LINE__, " <<< Combine >>> ", __func__);
+  CombineLogger::instance().log("combine.cpp", __LINE__,
+      std::string(" <<< ") + combineTagString + " >>>", __func__);
 
   // now search for algo, and add option
   map<string, LimitAlgo *>::const_iterator it_algo = methods.find(whichMethod);
