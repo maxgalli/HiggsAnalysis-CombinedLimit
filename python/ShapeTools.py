@@ -10,6 +10,10 @@ from HiggsAnalysis.CombinedLimit.ModelTools import ModelBuilder
 
 from .DataFrameWrapper import DataFrameWrapper
 
+import logging
+
+LOG = logging.getLogger("combine")
+
 RooArgSet_add_original = ROOT.RooArgSet.add
 
 
