@@ -188,12 +188,11 @@ class ShapeBuilder(ModelBuilder):
                 else:
                     sigcoeffs.append(coeff)
         if self.options.verbose > 1:
-            if self.options.verbose > 1:
-                LOG.debug("Creating RooAddPdf %s with %d elements", "pdf_bin" + b, coeffs.getSize())
-            if channelBinParFlag:
-                if self.options.useCMSHistSum:
-                    prop = self.addObj(
-                        ROOT.CMSHistSum,
+            LOG.debug("Creating RooAddPdf %s with %d elements", "pdf_bin" + b, coeffs.getSize())
+        if channelBinParFlag:
+            if self.options.useCMSHistSum:
+                prop = self.addObj(
+                    ROOT.CMSHistSum,
                         "prop_bin%s" % b,
                         "",
                         pdfs.at(0).getXVar(),
