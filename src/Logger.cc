@@ -89,6 +89,7 @@ const char *levelToAnsi(combine::logging::Level level) {
         case combine::logging::Level::Trace: return "\033[38;5;244m";
         case combine::logging::Level::Debug: return "\033[38;5;39m";
         case combine::logging::Level::Info: return "\033[0m";
+        case combine::logging::Level::Success: return "\033[38;5;82m";
         case combine::logging::Level::Warning: return "\033[38;5;214m";
         case combine::logging::Level::Error: return "\033[38;5;196m";
         case combine::logging::Level::Critical: return "\033[1;38;5;196m";
@@ -129,6 +130,7 @@ struct Logger::Impl {
             case Level::Error:
             case Level::Critical:
                 return consoleErr ? *consoleErr : std::cerr;
+            case Level::Success:
             default:
                 return consoleOut ? *consoleOut : std::cout;
         }
@@ -310,6 +312,7 @@ const char *levelToString(Level level) {
         case Level::Trace: return "TRACE";
         case Level::Debug: return "DEBUG";
         case Level::Info: return "INFO";
+        case Level::Success: return "SUCCESS";
         case Level::Warning: return "WARN";
         case Level::Error: return "ERROR";
         case Level::Critical: return "CRITICAL";
@@ -321,6 +324,7 @@ Level stringToLevel(const std::string &name) {
     if (name == "trace" || name == "TRACE") return Level::Trace;
     if (name == "debug" || name == "DEBUG") return Level::Debug;
     if (name == "info"  || name == "INFO")  return Level::Info;
+    if (name == "success" || name == "SUCCESS") return Level::Success;
     if (name == "warn"  || name == "warning" || name == "WARN" || name == "WARNING")
         return Level::Warning;
     if (name == "error" || name == "ERROR") return Level::Error;

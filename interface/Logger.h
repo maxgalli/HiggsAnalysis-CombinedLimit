@@ -12,6 +12,7 @@ enum class Level {
     Trace = 0,
     Debug,
     Info,
+    Success,
     Warning,
     Error,
     Critical,

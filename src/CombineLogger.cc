@@ -208,28 +208,39 @@ void CombineLogger::log(const std::string &_file, const int _lineN, const std::s
 	auto &logger = combine::logging::Logger::instance();
 	const bool wasSuppressed = logger.isSuppressed();
 	if (wasSuppressed) logger.popSuppression();
-	auto detectLevel = [&](const std::string &message) {
-		if (message.find("[CRITICAL]") != std::string::npos) return combine::logging::Level::Critical;
-		if (message.find("[ERROR]") != std::string::npos) return combine::logging::Level::Error;
-		if (message.find("[WARNING]") != std::string::npos || message.find("[WARN]") != std::string::npos)
-			return combine::logging::Level::Warning;
-		if (message.find("[DEBUG]") != std::string::npos) return combine::logging::Level::Debug;
-		return level_;
+	std::string message = _logmsg;
+
+	auto consumeMarker = [&](const std::string &marker) -> bool {
+		const auto pos = message.find(marker);
+		if (pos == std::string::npos) return false;
+		message.erase(pos, marker.size());
+		while (pos < message.size() && message[pos] == ' ') {
+			message.erase(pos, 1);
+		}
+		return true;
 	};
+
+	combine::logging::Level level = level_;
+	if (consumeMarker("[SUCCESS]")) level = combine::logging::Level::Success;
+	else if (consumeMarker("[CRITICAL]")) level = combine::logging::Level::Critical;
+	else if (consumeMarker("[ERROR]")) level = combine::logging::Level::Error;
+	else if (consumeMarker("[WARNING]") || consumeMarker("[WARN]")) level = combine::logging::Level::Warning;
+	else if (consumeMarker("[DEBUG]")) level = combine::logging::Level::Debug;
+	else if (consumeMarker("[TRACE]")) level = combine::logging::Level::Trace;
+	else if (consumeMarker("[INFO]")) level = combine::logging::Level::Info;
+
 	std::ostringstream formatted;
 
 	if (!_file.empty()) formatted << "[" << _file << "]";
 	if (_lineN > 0) formatted << "[" << _lineN << "]";
 	if (!_function.empty()) formatted << "[" << _function << "]";
-	if (!_logmsg.empty()) {
+	if (!message.empty()) {
 		if (formatted.tellp() > 0) formatted << ' ';
-		formatted << _logmsg;
+		formatted << message;
 	}
 
 	std::string payload = formatted.str();
-	if (payload.empty()) payload = _logmsg;
-
-	const auto level = detectLevel(_logmsg);
+	if (payload.empty()) payload = message;
 	if (wasSuppressed) {
 		logger.log(level, payload, nullptr, 0, nullptr, nullptr, /*skipConsole=*/true);
 		if (!payload.empty()) {

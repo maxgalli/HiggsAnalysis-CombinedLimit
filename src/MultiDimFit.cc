@@ -227,7 +227,7 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
     if ( loadedSnapshot_ || res.get() || keepFailures_) {
         for (int i = 0, n = poi_.size(); i < n; ++i) {
             if (res.get() && doHesse ){
-	    	// (res.get())->Print("v");
+	    // (res.get())->Print("v");
                 RooAbsArg *rfloat = (res.get())->floatParsFinal().find(poi_[i].c_str());
                 if (!rfloat) {
                     rfloat = (*res).constPars().find(poi_[i].c_str());
@@ -250,6 +250,8 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
 	Combine::commitPoint(/*expected=*/false, /*quantile=*/-1.); // Combine will not commit a point anymore at -1 so can do it here 
 	//}
     }
+
+    const bool fitSuccess = res.get() && res->status() == 0;
 
     if (robustHesse_) {
         RobustHesse robustHesse(*nll, verbose - 1);
@@ -296,8 +298,9 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
     switch(algo_) {
         case None: 
 	  {
-            CombineLogger::instance().log("MultiDimFit.cc", __LINE__, "\n --- MultiDimFit ---", __func__);
-            CombineLogger::instance().log("MultiDimFit.cc", __LINE__, "best fit parameter values:", __func__);
+            const std::string statusTag = fitSuccess ? std::string("[SUCCESS] ") : std::string("[ERROR] ");
+            CombineLogger::instance().log("MultiDimFit.cc", __LINE__, statusTag + "\n --- MultiDimFit ---", __func__);
+            CombineLogger::instance().log("MultiDimFit.cc", __LINE__, statusTag + "best fit parameter values:", __func__);
             int len = poi_[0].length();
             for (int i = 0, n = poi_.size(); i < n; ++i) {
                 len = std::max<int>(len, poi_[i].length());
@@ -306,7 +309,7 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
                 CombineLogger::instance().log(
                     "MultiDimFit.cc",
                     __LINE__,
-                    std::string(Form("   %*s :  %+8.3f", len, poi_[i].c_str(), poiVals_[i])),
+                    statusTag + std::string(Form("   %*s :  %+8.3f", len, poi_[i].c_str(), poiVals_[i])),
                     __func__);
             }
 	  }
