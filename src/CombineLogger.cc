@@ -207,6 +207,8 @@ CombineLogger::CombineLogger() :
 
 void CombineLogger::log(const std::string &_file, const int _lineN, const std::string &_logmsg, const std::string &_function) {
 	auto &logger = combine::logging::Logger::instance();
+	const bool wasSuppressed = logger.isSuppressed();
+	if (wasSuppressed) logger.popSuppression();
 	auto detectLevel = [&](const std::string &message) {
 		if (message.find("[CRITICAL]") != std::string::npos) return combine::logging::Level::Critical;
 		if (message.find("[ERROR]") != std::string::npos) return combine::logging::Level::Error;
@@ -215,8 +217,24 @@ void CombineLogger::log(const std::string &_file, const int _lineN, const std::s
 		if (message.find("[DEBUG]") != std::string::npos) return combine::logging::Level::Debug;
 		return level_;
 	};
-	logger.log(detectLevel(_logmsg), _logmsg, _file.c_str(), _lineN, _function.c_str(), "combine");
+	std::ostringstream formatted;
+	if (!_file.empty()) {
+		formatted << _file;
+		if (_lineN > 0) formatted << "[" << _lineN << "]";
+	}
+	if (!_function.empty()) {
+		if (formatted.tellp() > 0) formatted << " : ";
+		formatted << "(in function: " << _function << ")";
+	}
+	if (!_logmsg.empty()) {
+		if (formatted.tellp() > 0) formatted << " - ";
+		formatted << _logmsg;
+	}
+	std::string payload = formatted.str();
+	if (payload.empty()) payload = _logmsg;
+	logger.log(detectLevel(_logmsg), payload, nullptr, 0, nullptr, nullptr);
 	if (fileSinkEnabled_) ++nLogs;
+	if (wasSuppressed) logger.pushSuppression();
 }
 
 void CombineLogger::printLog() {
