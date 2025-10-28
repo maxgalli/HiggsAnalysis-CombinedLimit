@@ -217,18 +217,15 @@ void CombineLogger::log(const std::string &_file, const int _lineN, const std::s
 		return level_;
 	};
 	std::ostringstream formatted;
-	if (!_file.empty()) {
-		formatted << _file;
-		if (_lineN > 0) formatted << "[" << _lineN << "]";
-	}
-	if (!_function.empty()) {
-		if (formatted.tellp() > 0) formatted << " : ";
-		formatted << "(in function: " << _function << ")";
-	}
+
+	if (!_file.empty()) formatted << "[" << _file << "]";
+	if (_lineN > 0) formatted << "[" << _lineN << "]";
+	if (!_function.empty()) formatted << "[" << _function << "]";
 	if (!_logmsg.empty()) {
-		if (formatted.tellp() > 0) formatted << " - ";
+		if (formatted.tellp() > 0) formatted << ' ';
 		formatted << _logmsg;
 	}
+
 	std::string payload = formatted.str();
 	if (payload.empty()) payload = _logmsg;
 
