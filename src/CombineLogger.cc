@@ -1,4 +1,5 @@
 #include "../interface/CombineLogger.h"
+#include "../interface/CloseCoutSentry.h"
 
 #include <array>
 #include <atomic>
@@ -60,16 +61,15 @@ void emitLine(PipeCapture &pipe, combine::logging::Logger &logger, const std::st
 		payload.push_back('\n');
 		writeAll(pipe.originalFd, payload.c_str(), payload.size());
 	}
-	if (shouldMirrorToLog(line)) {
-		logger.log(
-		    pipe.level,
-		    line,
-		    nullptr,
-		    0,
-		    nullptr,
-		    pipe.channel.empty() ? nullptr : pipe.channel.c_str(),
-		    /*skipConsole=*/true);
-	}
+if (shouldMirrorToLog(line)) {
+	logger.log(
+	    pipe.level,
+	    line,
+	    nullptr,
+	    0,
+	    nullptr,
+	    pipe.channel.empty() ? nullptr : pipe.channel.c_str());
+}
 }
 
 void emitRemainder(PipeCapture &pipe, combine::logging::Logger &logger, std::string &buffer) {
@@ -77,16 +77,15 @@ void emitRemainder(PipeCapture &pipe, combine::logging::Logger &logger, std::str
 	if (pipe.originalFd >= 0) {
 		writeAll(pipe.originalFd, buffer.c_str(), buffer.size());
 	}
-	if (shouldMirrorToLog(buffer)) {
-		logger.log(
-		    pipe.level,
-		    buffer,
-		    nullptr,
-		    0,
-		    nullptr,
-		    pipe.channel.empty() ? nullptr : pipe.channel.c_str(),
-		    /*skipConsole=*/true);
-	}
+if (shouldMirrorToLog(buffer)) {
+	logger.log(
+	    pipe.level,
+	    buffer,
+	    nullptr,
+	    0,
+	    nullptr,
+	    pipe.channel.empty() ? nullptr : pipe.channel.c_str());
+}
 	buffer.clear();
 }
 
@@ -232,9 +231,21 @@ void CombineLogger::log(const std::string &_file, const int _lineN, const std::s
 	}
 	std::string payload = formatted.str();
 	if (payload.empty()) payload = _logmsg;
-	logger.log(detectLevel(_logmsg), payload, nullptr, 0, nullptr, nullptr);
+
+	const auto level = detectLevel(_logmsg);
+	if (wasSuppressed) {
+		logger.log(level, payload, nullptr, 0, nullptr, nullptr, /*skipConsole=*/true);
+		if (!payload.empty()) {
+			FILE *realOut = CloseCoutSentry::trueStdOutGlobal();
+			if (!realOut) realOut = stdout;
+			std::fprintf(realOut, "%s\n", payload.c_str());
+			std::fflush(realOut);
+		}
+		logger.pushSuppression();
+	} else {
+		logger.log(level, payload, nullptr, 0, nullptr, nullptr);
+	}
 	if (fileSinkEnabled_) ++nLogs;
-	if (wasSuppressed) logger.pushSuppression();
 }
 
 void CombineLogger::printLog() {
