@@ -136,6 +136,7 @@ int main(int argc, char **argv) {
 
   // if help, print help
   if(vm0.count("help")) {
+    CombineLogger::instance().setCaptureEnabled(false);
     cout << "Usage: combine datacard [options]\n";
     cout << desc;
     map<string, LimitAlgo *>::const_iterator i;
