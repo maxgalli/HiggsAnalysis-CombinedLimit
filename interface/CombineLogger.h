@@ -7,6 +7,8 @@
 
 #include "Logger.h"
 
+struct CombinePipeCapture;
+
 class CombineLogger
 {
 	public: 
@@ -33,7 +35,6 @@ class CombineLogger
 
 	protected:
 		// Static variable for the instance  
-		struct PipeCapture;
 
 		static CombineLogger* pL;
 
@@ -41,8 +42,8 @@ class CombineLogger
 		combine::logging::Level level_;
 		bool fileSinkEnabled_;
 		bool captureEnabled_;
-		std::unique_ptr<PipeCapture> stdoutCapture_;
-		std::unique_ptr<PipeCapture> stderrCapture_;
+		std::unique_ptr<CombinePipeCapture> stdoutCapture_;
+		std::unique_ptr<CombinePipeCapture> stderrCapture_;
 		void refreshPipeCapture();
 
 		CombineLogger();

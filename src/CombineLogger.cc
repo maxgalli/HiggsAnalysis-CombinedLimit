@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <vector>
 
-struct CombineLogger::PipeCapture {
+struct CombinePipeCapture {
     int fd = -1;
     int originalFd = -1;
     int pipeRead = -1;
@@ -24,7 +24,7 @@ struct CombineLogger::PipeCapture {
 
 namespace {
 
-using PipeCapture = CombineLogger::PipeCapture;
+using PipeCapture = CombinePipeCapture;
 
 void writeAll(int fd, const char *data, size_t size) {
 	while (size > 0) {
@@ -199,8 +199,8 @@ CombineLogger::CombineLogger() :
 	level_(combine::logging::Level::Info),
 	fileSinkEnabled_(false),
 	captureEnabled_(false),
-	stdoutCapture_(new PipeCapture()),
-	stderrCapture_(new PipeCapture()) {
+	stdoutCapture_(new CombinePipeCapture()),
+	stderrCapture_(new CombinePipeCapture()) {
 	auto &logger = combine::logging::Logger::instance();
 	logger.initialize(level_, std::string(), true);
 }
