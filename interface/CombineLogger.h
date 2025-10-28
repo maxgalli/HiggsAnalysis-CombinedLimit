@@ -7,8 +7,6 @@
 
 #include "Logger.h"
 
-struct PipeCapture;
-
 class CombineLogger
 {
 	public: 
@@ -35,6 +33,8 @@ class CombineLogger
 
 	protected:
 		// Static variable for the instance  
+		struct PipeCapture;
+
 		static CombineLogger* pL;
 
 		static std::string  fName;

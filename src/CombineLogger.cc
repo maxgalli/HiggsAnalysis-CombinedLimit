@@ -12,17 +12,19 @@
 #include <unistd.h>
 #include <vector>
 
+struct CombineLogger::PipeCapture {
+    int fd = -1;
+    int originalFd = -1;
+    int pipeRead = -1;
+    combine::logging::Level level = combine::logging::Level::Info;
+    std::string channel;
+    std::thread worker;
+    std::atomic<bool> running{false};
+};
+
 namespace {
 
-struct PipeCapture {
-	int fd = -1;
-	int originalFd = -1;
-	int pipeRead = -1;
-	combine::logging::Level level = combine::logging::Level::Info;
-	std::string channel;
-	std::thread worker;
-	std::atomic<bool> running{false};
-};
+using PipeCapture = CombineLogger::PipeCapture;
 
 void writeAll(int fd, const char *data, size_t size) {
 	while (size > 0) {
@@ -43,9 +45,9 @@ bool shouldMirrorToLog(const std::string &line) {
 		if (escEnd == std::string::npos) break;
 		start = escEnd + 1;
 	}
-	std::string prefixCandidate = line.substr(start);
-	static const std::array<const char *, 6> prefixes = {
-	    "[INFO]", "[WARN]", "[ERROR]", "[DEBUG]", "[TRACE]", "[CRITICAL]"};
+    std::string prefixCandidate = line.substr(start);
+    static const std::array<const char *, 6> prefixes{{
+        "[INFO]", "[WARN]", "[ERROR]", "[DEBUG]", "[TRACE]", "[CRITICAL]"}};
 	for (const char *prefix : prefixes) {
 		if (prefixCandidate.rfind(prefix, 0) == 0) return false;
 	}
