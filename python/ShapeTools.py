@@ -9,10 +9,9 @@ import ROOT
 from HiggsAnalysis.CombinedLimit.ModelTools import ModelBuilder
 
 from .DataFrameWrapper import DataFrameWrapper
+from HiggsAnalysis.CombinedLimit.util.logging_config import get_logger
 
-import logging
-
-LOG = logging.getLogger("combine")
+LOG = get_logger()
 
 RooArgSet_add_original = ROOT.RooArgSet.add
 
@@ -39,7 +38,7 @@ class FileCache:
         self._total += 1
         if fname not in self._files:
             if len(self._files) >= self._maxsize:
-                print("Flushing file cache of size %d" % len(self._files))
+                LOG.debug("Flushing file cache of size %d", len(self._files))
                 keys = list(self._files.keys())
                 keys.sort(key=lambda k: self._files[k][1] + 10 * self._hits[k])
                 for k in keys[: self._maxsize // 2]:
@@ -121,7 +120,13 @@ class ShapeBuilder(ModelBuilder):
             bbb_args = None
             channelBinParFlag = b in list(self.DC.binParFlags.keys())
             if channelBinParFlag:
-                print("Channel %s will use autoMCStats with settings: event-threshold=%g, include-signal=%i, hist-mode=%i" % ((b,) + self.DC.binParFlags[b]))
+                LOG.info(
+                    "Channel %s will use autoMCStats with settings: event-threshold=%g, include-signal=%i, hist-mode=%i",
+                    b,
+                    self.DC.binParFlags[b][0],
+                    self.DC.binParFlags[b][1],
+                    self.DC.binParFlags[b][2],
+                )
             for p in self.DC.exp[b].keys():  # so that we get only self.DC.processes contributing to this bin
                 if self.DC.exp[b][p] == 0:
                     continue
@@ -191,7 +196,11 @@ class ShapeBuilder(ModelBuilder):
                 else:
                     sigcoeffs.append(coeff)
             if self.options.verbose > 1:
-                print("Creating RooAddPdf {} with {} elements".format("pdf_bin" + b, coeffs.getSize()))
+                LOG.debug(
+                    "Creating RooAddPdf %s with %d elements",
+                    "pdf_bin" + b,
+                    coeffs.getSize(),
+                )
             if channelBinParFlag:
                 if self.options.useCMSHistSum:
                     prop = self.addObj(
@@ -648,16 +657,14 @@ class ShapeBuilder(ModelBuilder):
         self.out.data_obs = combiner.doneUnbinned(self.options.dataname, self.options.dataname)
         self.out.safe_import(self.out.data_obs)
         if self.options.verbose > 2:
-            print(
-                "Created combined dataset with ",
+            LOG.debug(
+                "Created combined dataset with %d entries, out of:",
                 self.out.data_obs.numEntries(),
-                " entries, out of:",
             )
             for b in self.DC.bins:
-                print(
-                    "  bin",
+                LOG.debug(
+                    "  bin %s: entries = %d",
                     b,
-                    ": entries = ",
                     self.getData(b, self.options.dataname).numEntries(),
                 )
 
@@ -667,14 +674,12 @@ class ShapeBuilder(ModelBuilder):
     def getShape(self, channel, process, syst="", _cache={}, allowNoSyst=False):
         if (channel, process, syst) in _cache:
             if self.options.verbose > 2:
-                print(
-                    "recyling (%s,%s,%s) -> %s\n"
-                    % (
-                        channel,
-                        process,
-                        syst,
-                        _cache[(channel, process, syst)].GetName(),
-                    )
+                LOG.debug(
+                    "recyling (%s,%s,%s) -> %s",
+                    channel,
+                    process,
+                    syst,
+                    _cache[(channel, process, syst)].GetName(),
                 )
             return _cache[(channel, process, syst)]
         postFix = "Sig" if (process in self.DC.isSignal and self.DC.isSignal[process]) else "Bkg"
@@ -742,15 +747,12 @@ class ShapeBuilder(ModelBuilder):
                 # Fix the fact that more than one entry can refer to the same object
                 ret = ret.Clone("shape{}_{}_{}{}".format(postFix, process, channel, "_" + syst if syst else ""))
                 if self.options.removeMultiPdf and ret.InheritsFrom("RooMultiPdf"):
-                    print(
-                        (
-                            "removeMultiPdf",
-                            process,
-                            channel,
-                            oname,
-                            "current index",
-                            ret.getCurrentIndex(),
-                        )
+                    LOG.debug(
+                        "removeMultiPdf %s %s %s current index %d",
+                        process,
+                        channel,
+                        oname,
+                        ret.getCurrentIndex(),
                     )
                     ret = ret.getCurrentPdf().Clone(ret.GetName())
                 if self.options.optimizeMHDependency and ret.InheritsFrom("RooAbsReal"):
@@ -851,7 +853,12 @@ class ShapeBuilder(ModelBuilder):
                 raise RuntimeError(f"Failed to find {objname} in file {finalNames[0]} (from pattern {names[1]}, {names[0]})")
             ret.SetName("shape{}_{}_{}{}".format(postFix, process, channel, "_" + syst if syst else ""))
             if self.options.verbose > 2:
-                print(f"import ({finalNames[0]},{objname}) -> {ret.GetName()}\n")
+                LOG.debug(
+                    "import (%s,%s) -> %s",
+                    finalNames[0],
+                    objname,
+                    ret.GetName(),
+                )
             _cache[(channel, process, syst)] = ret
             return ret
 
@@ -1107,7 +1114,7 @@ class ShapeBuilder(ModelBuilder):
     def getExtraNorm(self, channel, process):
         if channel in self.selfNormBins and self.DC.binParFlags[channel][2] in [2]:
             if self.options.verbose > 1:
-                print(f"Skipping getExtraNorm for ({channel},{process})")
+                LOG.debug("Skipping getExtraNorm for (%s,%s)", channel, process)
             return None
         postFix = "Sig" if (process in self.DC.isSignal and self.DC.isSignal[process]) else "Bkg"
         terms = []
@@ -1381,7 +1388,13 @@ class ShapeBuilder(ModelBuilder):
                 raise RuntimeError("???")
             depvars.setRealValue("MH", self.options.mass)  # be safe
             if self.options.optimizeMHDependency == "fixed":
-                print(f"{indent}{arg.GetName()} depends only on MH, will freeze to its value at MH={MH.getVal():g}, {arg.getVal():g}")
+                LOG.debug(
+                    "%s%s depends only on MH, will freeze to its value at MH=%g, %g",
+                    indent,
+                    arg.GetName(),
+                    MH.getVal(),
+                    arg.getVal(),
+                )
                 ret = ROOT.RooConstVar("%s__frozenMH" % arg.GetName(), "", arg.getVal())
                 self.out.dont_delete.append(ret)
             elif self.options.optimizeMHDependency in (
@@ -1398,7 +1411,12 @@ class ShapeBuilder(ModelBuilder):
                 raise RuntimeError("Unknown option value %r for optimizeMHDependency" % self.options.optimizeMHDependency)
             return ret
         else:
-            print("%s%s depends on MH and other %d variables." % (indent, arg.GetName(), depvars.getSize()))
+            LOG.debug(
+                "%s%s depends on MH and other %d variables.",
+                indent,
+                arg.GetName(),
+                depvars.getSize(),
+            )
             # depvars.Print("")
             newservers = []
             for a in arg.servers():
@@ -1406,13 +1424,11 @@ class ShapeBuilder(ModelBuilder):
                 if aopt != a:
                     newservers.append((a, aopt))
             if newservers:
-                print(
-                    "%sCan do replacements of %d servers: %s"
-                    % (
-                        indent,
-                        len(newservers),
-                        ", ".join(a.GetName() for (a, aopt) in newservers),
-                    )
+                LOG.debug(
+                    "%sCan do replacements of %d servers: %s",
+                    indent,
+                    len(newservers),
+                    ", ".join(a.GetName() for (a, aopt) in newservers),
                 )
                 # print "-- Before --"
                 # arg.Print("t")

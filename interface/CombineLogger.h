@@ -2,9 +2,12 @@
 #define HiggsAnalysis_CombinedLimit_CombineLogger_h
 
 #include <cstdlib>
+#include <memory>
 #include <string>
 
 #include "Logger.h"
+
+struct PipeCapture;
 
 class CombineLogger
 {
@@ -24,6 +27,7 @@ class CombineLogger
 		void log(const std::string & _file, const int _lineN, const std::string& _logmsg, const std::string& _function);
 		void printLog();
 		void setVerbosity(combine::logging::Level level);
+		void setCaptureEnabled(bool enabled);
 		combine::logging::Level verbosity() const;
 		void enableFileSink(const std::string &path = std::string(), bool append = false);
 		void disableFileSink();
@@ -36,6 +40,11 @@ class CombineLogger
 		static std::string  fName;
 		combine::logging::Level level_;
 		bool fileSinkEnabled_;
+		bool captureEnabled_;
+		std::unique_ptr<PipeCapture> stdoutCapture_;
+		std::unique_ptr<PipeCapture> stderrCapture_;
+		void refreshPipeCapture();
+
 		CombineLogger();
 		virtual ~CombineLogger();
 };

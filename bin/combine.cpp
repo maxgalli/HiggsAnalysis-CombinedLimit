@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     ("datacard,d", po::value<string>(&datacard), "Datacard file (can also be specified directly without the -d or --datacard)")
     ("method,M",      po::value<string>(&whichMethod)->default_value("AsymptoticLimits"), methodsDesc.c_str())
     ("verbose,v",  po::value<int>(&verbose)->default_value(0),
-     "Verbosity level (-1 = silent, 0 = default, 1 = verbose, 2 = debug, 3 = trace)")
+     "Verbosity level (-1 = silent, 0 = default info, 1 = verbose, 2 = debug (incl. minimizer output), 3 = trace (incl. RooFit)")
     ("log-file", po::value<string>(&logFile)->implicit_value("combine_logger.out"),
      "Write structured log messages to the specified file (default: combine_logger.out)")
     ("help,h", "Produce help message")
@@ -132,12 +132,6 @@ int main(int argc, char **argv) {
   } catch(...) {
     cerr << "Unidentified error parsing options." << endl;
     return 1000;
-  }
-
-  if (vm0.count("log-file")) {
-    logFile = vm0["log-file"].as<string>();
-    if (logFile.empty()) CombineLogger::instance().enableFileSink();
-    else CombineLogger::instance().enableFileSink(logFile);
   }
 
   // if help, print help
@@ -208,6 +202,7 @@ int main(int argc, char **argv) {
     }
   };
   CombineLogger::instance().setVerbosity(mapVerboseToLevel(verbose));
+  CombineLogger::instance().setCaptureEnabled(verbose >= 2);
   combine::logging::Logger::instance().setIncludeTimestamp(false);
   if (vm.count("log-file")) {
     if (logFile.empty()) CombineLogger::instance().enableFileSink();

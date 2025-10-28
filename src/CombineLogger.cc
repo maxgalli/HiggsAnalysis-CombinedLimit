@@ -1,6 +1,185 @@
 #include "../interface/CombineLogger.h"
 
+#include <array>
+#include <atomic>
+#include <cerrno>
+#include <cstdio>
+#include <fcntl.h>
 #include <sstream>
+#include <string>
+#include <sys/types.h>
+#include <thread>
+#include <unistd.h>
+#include <vector>
+
+namespace {
+
+struct PipeCapture {
+	int fd = -1;
+	int originalFd = -1;
+	int pipeRead = -1;
+	combine::logging::Level level = combine::logging::Level::Info;
+	std::string channel;
+	std::thread worker;
+	std::atomic<bool> running{false};
+};
+
+void writeAll(int fd, const char *data, size_t size) {
+	while (size > 0) {
+		ssize_t written = ::write(fd, data, size);
+		if (written < 0) {
+			if (errno == EINTR) continue;
+			break;
+		}
+		data += written;
+		size -= static_cast<size_t>(written);
+	}
+}
+
+bool shouldMirrorToLog(const std::string &line) {
+	size_t start = 0;
+	while (start < line.size() && line[start] == '\033') {
+		size_t escEnd = line.find('m', start);
+		if (escEnd == std::string::npos) break;
+		start = escEnd + 1;
+	}
+	std::string prefixCandidate = line.substr(start);
+	static const std::array<const char *, 6> prefixes = {
+	    "[INFO]", "[WARN]", "[ERROR]", "[DEBUG]", "[TRACE]", "[CRITICAL]"};
+	for (const char *prefix : prefixes) {
+		if (prefixCandidate.rfind(prefix, 0) == 0) return false;
+	}
+	return true;
+}
+
+void emitLine(PipeCapture &pipe, combine::logging::Logger &logger, const std::string &line) {
+	if (pipe.originalFd >= 0) {
+		std::string payload = line;
+		payload.push_back('\n');
+		writeAll(pipe.originalFd, payload.c_str(), payload.size());
+	}
+	if (shouldMirrorToLog(line)) {
+		logger.log(
+		    pipe.level,
+		    line,
+		    nullptr,
+		    0,
+		    nullptr,
+		    pipe.channel.empty() ? nullptr : pipe.channel.c_str(),
+		    /*skipConsole=*/true);
+	}
+}
+
+void emitRemainder(PipeCapture &pipe, combine::logging::Logger &logger, std::string &buffer) {
+	if (buffer.empty()) return;
+	if (pipe.originalFd >= 0) {
+		writeAll(pipe.originalFd, buffer.c_str(), buffer.size());
+	}
+	if (shouldMirrorToLog(buffer)) {
+		logger.log(
+		    pipe.level,
+		    buffer,
+		    nullptr,
+		    0,
+		    nullptr,
+		    pipe.channel.empty() ? nullptr : pipe.channel.c_str(),
+		    /*skipConsole=*/true);
+	}
+	buffer.clear();
+}
+
+void startPipeCapture(PipeCapture &pipe,
+                      combine::logging::Logger &logger,
+                      int fd,
+                      FILE *stream,
+                      combine::logging::Level level,
+                      const char *channel) {
+	if (pipe.running.load()) return;
+
+	int ends[2];
+	if (::pipe(ends) != 0) {
+		return;
+	}
+#ifdef FD_CLOEXEC
+	::fcntl(ends[0], F_SETFD, FD_CLOEXEC);
+	::fcntl(ends[1], F_SETFD, FD_CLOEXEC);
+#endif
+
+	pipe.pipeRead = ends[0];
+	int pipeWrite = ends[1];
+	pipe.originalFd = ::dup(fd);
+	if (pipe.originalFd < 0) {
+		::close(pipe.pipeRead);
+		::close(pipeWrite);
+		pipe.pipeRead = -1;
+		return;
+	}
+
+	pipe.fd = fd;
+	pipe.level = level;
+	pipe.channel = channel ? channel : "";
+	pipe.running.store(true);
+
+	::setvbuf(stream, nullptr, _IONBF, 0);
+	::fflush(stream);
+	::dup2(pipeWrite, fd);
+	::close(pipeWrite);
+
+	pipe.worker = std::thread([&pipe, &logger]() {
+		std::array<char, 512> chunk{};
+		std::string buffer;
+		while (pipe.running.load()) {
+			ssize_t count = ::read(pipe.pipeRead, chunk.data(), chunk.size());
+			if (count > 0) {
+				buffer.append(chunk.data(), static_cast<size_t>(count));
+				size_t pos = 0;
+				while ((pos = buffer.find('\n')) != std::string::npos) {
+					std::string line = buffer.substr(0, pos);
+					buffer.erase(0, pos + 1);
+					if (!line.empty()) emitLine(pipe, logger, line);
+				}
+			} else if (count == 0) {
+				break;
+			} else if (errno != EINTR) {
+				break;
+			}
+		}
+		emitRemainder(pipe, logger, buffer);
+		if (pipe.pipeRead >= 0) {
+			::close(pipe.pipeRead);
+			pipe.pipeRead = -1;
+		}
+	});
+}
+
+void stopPipeCapture(PipeCapture &pipe) {
+	if (!pipe.running.load()) return;
+
+	pipe.running.store(false);
+	if (pipe.fd == STDOUT_FILENO) {
+		::fflush(stdout);
+	} else if (pipe.fd == STDERR_FILENO) {
+		::fflush(stderr);
+	}
+	if (pipe.originalFd >= 0 && pipe.fd >= 0) {
+		::dup2(pipe.originalFd, pipe.fd);
+	}
+	if (pipe.originalFd >= 0) {
+		::close(pipe.originalFd);
+		pipe.originalFd = -1;
+	}
+	if (pipe.worker.joinable()) {
+		pipe.worker.join();
+	}
+	if (pipe.pipeRead >= 0) {
+		::close(pipe.pipeRead);
+		pipe.pipeRead = -1;
+	}
+	pipe.fd = -1;
+	pipe.channel.clear();
+}
+
+} // namespace
 int CombineLogger::nLogs = 0;
 
 std::string CombineLogger::fName = "combine_logger.out";
@@ -16,7 +195,10 @@ CombineLogger &CombineLogger::instance() {
 
 CombineLogger::CombineLogger() :
 	level_(combine::logging::Level::Info),
-	fileSinkEnabled_(false) {
+	fileSinkEnabled_(false),
+	captureEnabled_(false),
+	stdoutCapture_(new PipeCapture()),
+	stderrCapture_(new PipeCapture()) {
 	auto &logger = combine::logging::Logger::instance();
 	logger.initialize(level_, std::string(), true);
 }
@@ -46,6 +228,13 @@ void CombineLogger::printLog() {
 void CombineLogger::setVerbosity(combine::logging::Level level) {
 	level_ = level;
 	combine::logging::Logger::instance().setLevel(level);
+	refreshPipeCapture();
+}
+
+void CombineLogger::setCaptureEnabled(bool enabled) {
+	if (captureEnabled_ == enabled) return;
+	captureEnabled_ = enabled;
+	refreshPipeCapture();
 }
 
 combine::logging::Level CombineLogger::verbosity() const {
@@ -64,6 +253,7 @@ void CombineLogger::enableFileSink(const std::string &path, bool append) {
 	}
 	if (!fileSinkEnabled_ || fName != previousPath) nLogs = 0;
 	fileSinkEnabled_ = true;
+	refreshPipeCapture();
 }
 
 void CombineLogger::disableFileSink() {
@@ -71,9 +261,41 @@ void CombineLogger::disableFileSink() {
 	combine::logging::Logger::instance().clearFileSink();
 	fileSinkEnabled_ = false;
 	::unsetenv("COMBINE_LOG_FILE");
+	refreshPipeCapture();
+}
+
+void CombineLogger::refreshPipeCapture() {
+	auto &logger = combine::logging::Logger::instance();
+	const bool capture = fileSinkEnabled_ && captureEnabled_;
+	if (capture) {
+		auto stdoutLevel = (level_ == combine::logging::Level::Trace)
+		                            ? combine::logging::Level::Trace
+		                            : combine::logging::Level::Debug;
+		if (stdoutCapture_) {
+			if (stdoutCapture_->running.load()) {
+				stdoutCapture_->level = stdoutLevel;
+				stdoutCapture_->channel = "stdout";
+			} else {
+				startPipeCapture(*stdoutCapture_, logger, STDOUT_FILENO, stdout, stdoutLevel, "stdout");
+			}
+		}
+		if (stderrCapture_) {
+			if (stderrCapture_->running.load()) {
+				stderrCapture_->level = combine::logging::Level::Warning;
+				stderrCapture_->channel = "stderr";
+			} else {
+				startPipeCapture(*stderrCapture_, logger, STDERR_FILENO, stderr, combine::logging::Level::Warning, "stderr");
+			}
+		}
+	} else {
+		if (stdoutCapture_) stopPipeCapture(*stdoutCapture_);
+		if (stderrCapture_) stopPipeCapture(*stderrCapture_);
+	}
 }
 
 CombineLogger::~CombineLogger() {
+	if (stdoutCapture_) stopPipeCapture(*stdoutCapture_);
+	if (stderrCapture_) stopPipeCapture(*stderrCapture_);
 	CombineLogger::pL = nullptr;
 	combine::logging::Logger::instance().shutdown();
 }
