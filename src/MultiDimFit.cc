@@ -251,7 +251,8 @@ bool MultiDimFit::runSpecific(RooWorkspace *w, RooStats::ModelConfig *mc_s, RooS
 	//}
     }
 
-    const bool fitSuccess = res.get() && res->status() == 0;
+    int fitStatus = res.get() ? res->status() : -999;
+    const bool fitSuccess = res.get() && (fitStatus == 0 || fitStatus == -1);
 
     if (robustHesse_) {
         RobustHesse robustHesse(*nll, verbose - 1);
