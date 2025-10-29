@@ -181,7 +181,7 @@ bool CascadeMinimizer::improveOnce(int verbose, bool noHesse)
         if (rooFitOffset) minimizer_->setOffsetting(std::max(0,rooFitOffset));
         outcome = nllutils::robustMinimize(nll_, *minimizer_, verbose, setZeroPoint_);
     } else {
-        if (verbose+2>0) CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,std::string(Form("Minimization configured with Type=%s, Algo=%s, strategy=%d, tolerance=%g",myType.c_str(),myAlgo.c_str(),myStrategy,tol)),__func__);
+        if (verbose >= 2) CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,std::string(Form("Minimization configured with Type=%s, Algo=%s, strategy=%d, tolerance=%g",myType.c_str(),myAlgo.c_str(),myStrategy,tol)),__func__);
         cacheutils::CachingSimNLL *simnll = setZeroPoint_ ? dynamic_cast<cacheutils::CachingSimNLL *>(&nll_) : 0;
         if (simnll) simnll->setZeroPoint();
         if ((!simnll) && optConst) minimizer_->optimizeConst(std::max(0,optConst));
@@ -216,20 +216,20 @@ bool CascadeMinimizer::improveOnce(int verbose, bool noHesse)
             minimizer_->setPrintLevel(std::max(0,verbose-3)); 
             status = minimizer_->hesse();
             minimizer_->setPrintLevel(verbose-1); 
-    	    if (verbose+2>0 ) CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,std::string(Form("Hesse finished with status=%d",status)),__func__);
+    	    if (verbose >= 2)  CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,std::string(Form("Hesse finished with status=%d",status)),__func__);
         }
         if (simnll) simnll->clearZeroPoint();
         outcome = (status == 0 || status == 1);
       // Severe enough that we should print this to the terminal too
 	    if (status==1) { 
         std::cerr << "[WARNING] Minimization finished with status 1 (covariance matrix forced positive definite), this could indicate a problem with the minimum!" << std::endl;
-        if (verbose+2>0 ) CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,"[WARNING] Minimization finished with status 1 (covariance matrix forced positive definite), this could indicate a problem with the minimum.",__func__);
+        if (verbose >= 2)  CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,"[WARNING] Minimization finished with status 1 (covariance matrix forced positive definite), this could indicate a problem with the minimum.",__func__);
       }
-    	if (verbose+2>0 ) {
+    	if (verbose >= 2)  {
 		  CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,std::string(Form("Minimization finished with status=%d",status)),__func__);
 	    }
     }
-    if (verbose+2>0 ){
+    if (verbose >= 2) {
      if  (outcome) CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,"Minimization success! status=0",__func__);
      else CombineLogger::instance().log("CascadeMinimizer.cc",__LINE__,"Minimization ended with latest status != 0 or 1",__func__);
     }
