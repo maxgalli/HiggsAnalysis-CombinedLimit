@@ -52,7 +52,7 @@ jobs:
     - name: Set up Conda
       uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: 3.12
+        python-version: ${{ matrix.python }}
         miniforge-version: latest
     - name: Install build environment
       shell: bash -l {0}
