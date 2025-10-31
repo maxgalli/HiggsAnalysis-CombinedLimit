@@ -13,16 +13,39 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     name: Build and deploy docs
+    env:
+      DOC_VERSIONS: "v10.2.1 v10.2.0"
 
     steps:
     - uses: actions/checkout@master
+      with:
+        fetch-depth: 0  # required so that tags are available
     - uses: actions/setup-python@v2
       with:
         python-version: 3.8
     - name: Build documentation
       run: |
+        set -euo pipefail
         python3 -m pip install mkdocs pymdown-extensions mkdocs-material mike
         git fetch origin gh-pages --depth=1
         git config user.name ci-bot
         git config user.email ci-bot@example.com
-        mike deploy --push v10.2.X latest
+
+        # Always (re)deploy documentation for the tip of main
+        git checkout --quiet "${GITHUB_REF_NAME:-main}" || git checkout --quiet main
+        mike deploy --push --branch gh-pages --remote origin main
+
+        # Deploy documentation for the selected release tags
+        IFS=' ' read -r -a DOC_TAGS <<< "${DOC_VERSIONS}"
+        if [ "${#DOC_TAGS[@]}" -gt 0 ]; then
+          DEFAULT_DOC_VERSION="${DOC_TAGS[0]}"
+          for tag in "${DOC_TAGS[@]}"; do
+            git checkout --quiet "refs/tags/${tag}"
+            mike deploy --push --branch gh-pages --remote origin "${tag}"
+          done
+          # Restore main branch before setting aliases/defaults
+          git checkout --quiet "${GITHUB_REF_NAME:-main}" || git checkout --quiet main
+          # Ensure the default landing page and 'latest' alias point to the chosen release
+          mike set-default --push --branch gh-pages --remote origin "${DEFAULT_DOC_VERSION}"
+          mike alias --push --branch gh-pages --remote origin "${DEFAULT_DOC_VERSION}" latest
+        fi
