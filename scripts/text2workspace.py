@@ -9,6 +9,7 @@ from HiggsAnalysis.CombinedLimit.DatacardParser import *
 from HiggsAnalysis.CombinedLimit.ModelTools import *
 from HiggsAnalysis.CombinedLimit.PhysicsModel import *
 from HiggsAnalysis.CombinedLimit.ShapeTools import *
+from HiggsAnalysis.CombinedLimit.TimingProfiler import get_profiler, print_timing_summary
 
 # import ROOT with a fix to get batch mode (http://root.cern.ch/phpBB3/viewtopic.php?t=3198)
 argv.append("-b-")
@@ -75,29 +76,51 @@ else:
     file = open(options.fileName)
 
 ## Parse text file
-DC = parseCard(file, options)
+profiler = get_profiler()
+
+@profiler.time_function("text2workspace.parseCard")
+def timed_parseCard():
+    return parseCard(file, options)
+
+DC = timed_parseCard()
 
 if options.dumpCard:
     DC.print_structure()
     exit()
 
 ## Load tools to build workspace
-MB = None
-if DC.hasShapes:
-    MB = ShapeBuilder(DC, options)
-else:
-    MB = CountingModelBuilder(DC, options)
+@profiler.time_function("text2workspace.createModelBuilder")
+def timed_createModelBuilder():
+    if DC.hasShapes:
+        return ShapeBuilder(DC, options)
+    else:
+        return CountingModelBuilder(DC, options)
+
+MB = timed_createModelBuilder()
 
 ## Load physics model
-(physModMod, physModName) = options.physModel.split(":")
-__import__(physModMod)
-mod = modules[physModMod]
-physics = getattr(mod, physModName)
-if mod == None:
-    raise RuntimeError("Physics model module %s not found" % physModMod)
-if physics == None or not isinstance(physics, PhysicsModelBase):
-    raise RuntimeError(f"Physics model {physModName} in module {physModMod} not found, or not inheriting from PhysicsModelBase")
-physics.setPhysicsOptions(options.physOpt)
+@profiler.time_function("text2workspace.loadPhysicsModel")
+def timed_loadPhysicsModel():
+    (physModMod, physModName) = options.physModel.split(":")
+    __import__(physModMod)
+    mod = modules[physModMod]
+    physics = getattr(mod, physModName)
+    if mod == None:
+        raise RuntimeError("Physics model module %s not found" % physModMod)
+    if physics == None or not isinstance(physics, PhysicsModelBase):
+        raise RuntimeError(f"Physics model {physModName} in module {physModMod} not found, or not inheriting from PhysicsModelBase")
+    physics.setPhysicsOptions(options.physOpt)
+    return physics
+
+physics = timed_loadPhysicsModel()
+
 ## Attach to the tools, and run
-MB.setPhysics(physics)
-MB.doModel(justCheckPhysicsModel=options.justCheckPhysicsModel)
+@profiler.time_function("text2workspace.setPhysicsAndDoModel")
+def timed_doModel():
+    MB.setPhysics(physics)
+    MB.doModel(justCheckPhysicsModel=options.justCheckPhysicsModel)
+
+timed_doModel()
+
+## Print timing summary
+print_timing_summary(min_time=0.001)

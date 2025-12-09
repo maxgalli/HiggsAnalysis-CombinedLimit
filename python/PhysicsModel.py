@@ -1,5 +1,6 @@
 import re
 from abc import ABCMeta, abstractmethod
+from HiggsAnalysis.CombinedLimit.TimingProfiler import time_function
 
 ### Class that takes care of building a physics model by combining individual channels and processes together
 ### Things that it can do:
@@ -123,6 +124,7 @@ class MultiSignalModelBase(PhysicsModelBase_NiceSubclasses):
                 physOptions.append("map=.*/({}):0".format("|".join(turnoff)))
         super().setPhysicsOptions(physOptions)
 
+    @time_function("MultiSignalModelBase.processPhysicsOptions")
     def processPhysicsOptions(self, physOptions):
         processed = []
         physOptions.sort(key=lambda x: x.startswith("verbose"), reverse=True)  # put verbose at the beginning
@@ -155,6 +157,7 @@ class MultiSignalModelBase(PhysicsModelBase_NiceSubclasses):
                 processed.append(po)
         return processed + super().processPhysicsOptions(physOptions)
 
+    @time_function("MultiSignalModelBase.getPOIList")
     def getPOIList(self):
         """Create POI and other parameters, and define the POI set."""
         # --- Higgs Mass as other parameter ----
@@ -169,6 +172,7 @@ class MultiSignalModelBase(PhysicsModelBase_NiceSubclasses):
             self.modelBuilder.factory_(pf)
         return poiNames
 
+    @time_function("MultiSignalModelBase.getYieldScale")
     def getYieldScale(self, bin, process):
         string = f"{bin}/{process}"
         poi = None

@@ -5,6 +5,7 @@ from sys import stderr
 
 from HiggsAnalysis.CombinedLimit.Datacard import Datacard
 from HiggsAnalysis.CombinedLimit.NuisanceModifier import doEditNuisance
+from HiggsAnalysis.CombinedLimit.TimingProfiler import time_function
 
 globalNuisances = re.compile("(lumi|pdf_(qqbar|gg|qg)|QCDscale_(ggH|qqH|VH|ggH1in|ggH2in|VV)|UEPS|FakeRate|CMS_(eff|fake|trigger|scale|res)_([gemtjb]|met))")
 
@@ -340,6 +341,7 @@ def addRateParam(lsyst, f, ret):
     ret.rateParamsOrder.add(lsyst)
 
 
+@time_function("DatacardParser.parseCard")
 def parseCard(file, options):
     if isinstance(file, str):
         raise RuntimeError("Argument to parseCards should be a file object, stream or a list of lines, not a string")

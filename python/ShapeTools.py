@@ -5,6 +5,7 @@ from sys import exit, stderr, stdout
 
 import ROOT
 from HiggsAnalysis.CombinedLimit.ModelTools import ModelBuilder
+from HiggsAnalysis.CombinedLimit.TimingProfiler import time_function
 
 from .DataFrameWrapper import DataFrameWrapper
 
@@ -79,6 +80,7 @@ class ShapeBuilder(ModelBuilder):
     ## ------------------------------------------
     ## -------- ModelBuilder interface ----------
     ## ------------------------------------------
+    @time_function("ShapeBuilder.doObservables")
     def doObservables(self):
         if self.options.verbose > 2:
             stderr.write("Using shapes. \n")
@@ -102,6 +104,7 @@ class ShapeBuilder(ModelBuilder):
         if len(self.DC.obs) != 0 and not self.options.noData:
             self.doCombinedDataset()
 
+    @time_function("ShapeBuilder.doIndividualModels")
     def doIndividualModels(self):
         if self.options.verbose:
             stderr.write("Creating pdfs for individual modes (%d): " % len(self.DC.bins))
@@ -380,36 +383,76 @@ class ShapeBuilder(ModelBuilder):
             stderr.write("\b\b\b\bdone.\n")
             stderr.flush()
 
+    @time_function("ShapeBuilder.doCombination")
     def doCombination(self):
         ## Contrary to Number-counting models, here each channel PDF already contains the nuisances
         ## So we just have to build the combined pdf
+        import time
+        _start_total = time.time()
+
+        _start = time.time()
         dupObjs = set()
         dupNames = set()
+        print(f"[doCombination] Initialization: {time.time() - _start:.3f}s")
+
         if len(self.DC.bins) > 1 or not self.options.forceNonSimPdf:
+            _start = time.time()
             if self.options.doMasks:
                 maskList = ROOT.RooArgList()
                 for b in self.DC.bins:
                     maskList.add(self.out.arg(self.physics.getChannelMask(b)))
+            print(f"[doCombination] Create mask list: {time.time() - _start:.3f}s")
+
             for postfixIn, postfixOut in [("", "_s"), ("_bonly", "_b")]:
+                print(f"\n[doCombination] Building model{postfixOut}...")
+
+                _start = time.time()
                 simPdf = (
                     ROOT.RooSimultaneous("model" + postfixOut, "model" + postfixOut, self.out.binCat)
                     if self.options.noOptimizePdf
                     else ROOT.RooSimultaneousOpt("model" + postfixOut, "model" + postfixOut, self.out.binCat)
                 )
+                print(f"[doCombination]   Create RooSimultaneous: {time.time() - _start:.3f}s")
+
+                _start = time.time()
+                _rename_time = 0.0
+                _addpdf_time = 0.0
                 for b in self.DC.bins:
+                    _get_start = time.time()
                     pdfi = self.getObj(f"pdf_bin{b}{postfixIn}")
+                    _addpdf_time += time.time() - _get_start
+
+                    _rename_start = time.time()
                     self.RenameDupObjs(dupObjs, dupNames, pdfi, b)
+                    _rename_time += time.time() - _rename_start
+
+                    _add_start = time.time()
                     simPdf.addPdf(pdfi, b)
+                    _addpdf_time += time.time() - _add_start
+                print(f"[doCombination]   Loop over {len(self.DC.bins)} bins: {time.time() - _start:.3f}s")
+                print(f"[doCombination]     - getObj + addPdf: {_addpdf_time:.3f}s")
+                print(f"[doCombination]     - RenameDupObjs: {_rename_time:.3f}s")
+
+                _start = time.time()
                 if (not self.options.noOptimizePdf) and self.options.doMasks:
                     simPdf.addChannelMasks(maskList)
+                print(f"[doCombination]   Add channel masks: {time.time() - _start:.3f}s")
+
+                _start = time.time()
                 if len(self.DC.systs) and (not self.options.noOptimizePdf) and self.options.moreOptimizeSimPdf == "cms":
                     simPdf.addExtraConstraints(self.out.nuisPdfs)
+                print(f"[doCombination]   Add extra constraints: {time.time() - _start:.3f}s")
+
                 if self.options.verbose:
                     stderr.write("Importing combined pdf %s\n" % simPdf.GetName())
                     stderr.flush()
 
                 # take care of any variables which were renamed (eg for "param")
+                _start = time.time()
                 paramString, renameParamString, toFreeze = self.getRenamingParameters()
+                print(f"[doCombination]   Get renaming parameters: {time.time() - _start:.3f}s")
+
+                _start = time.time()
                 if len(renameParamString):
                     self.out.safe_import(
                         simPdf,
@@ -418,12 +461,18 @@ class ShapeBuilder(ModelBuilder):
                     )
                 else:
                     self.out.safe_import(simPdf, ROOT.RooFit.RecycleConflictNodes())
+                print(f"[doCombination]   Workspace import (safe_import): {time.time() - _start:.3f}s")
+
+                _start = time.time()
                 for pfreeze in toFreeze:
                     if self.out.var(pfreeze):
                         self.out.var(pfreeze).setConstant(True)
+                print(f"[doCombination]   Freeze parameters: {time.time() - _start:.3f}s")
+
                 if self.options.noBOnly:
                     break
         else:
+            _start = time.time()
             self.out.safe_import(
                 self.getObj("pdf_bin%s" % self.DC.bins[0]).clone("model_s"),
                 ROOT.RooFit.Silence(),
@@ -433,9 +482,22 @@ class ShapeBuilder(ModelBuilder):
                     self.getObj("pdf_bin%s_bonly" % self.DC.bins[0]).clone("model_b"),
                     ROOT.RooFit.Silence(),
                 )
-        for arg in self.extraImports:
-            # print 'Importing extra arg: %s' % arg.GetName()
-            self.out.safe_import(arg, ROOT.RooFit.RecycleConflictNodes())
+            print(f"[doCombination] Single bin import: {time.time() - _start:.3f}s")
+
+        _start = time.time()
+        n_imports = len(self.extraImports)
+        if n_imports > 0:
+            print(f"[doCombination] Importing {n_imports} CMSHistFuncWrapper objects (autoMCStats)...")
+            for idx, arg in enumerate(self.extraImports):
+                if idx % 100 == 0 and idx > 0:
+                    elapsed = time.time() - _start
+                    rate = idx / elapsed
+                    remaining = (n_imports - idx) / rate if rate > 0 else 0
+                    print(f"  Progress: {idx}/{n_imports} ({idx*100//n_imports}%) - {elapsed:.1f}s elapsed, ~{remaining:.1f}s remaining")
+                self.out.safe_import(arg, ROOT.RooFit.RecycleConflictNodes())
+        print(f"[doCombination] Import extra args ({n_imports} wrappers): {time.time() - _start:.3f}s")
+
+        _start = time.time()
         if self.options.fixpars:
             pars = self.out.pdf("model_s").getParameters(self.out.obs)
             for arg in pars:
@@ -443,6 +505,9 @@ class ShapeBuilder(ModelBuilder):
                     break
                 if arg.InheritsFrom("RooRealVar") and arg.GetName() != "r":
                     arg.setConstant(True)
+        print(f"[doCombination] Fix parameters: {time.time() - _start:.3f}s")
+
+        print(f"\n[doCombination] TOTAL TIME: {time.time() - _start_total:.3f}s\n")
 
     def RenameDupObjs(self, dupObjs, dupNames, newObj, postFix):
         # print 'Checking for duplicates in %s' % newObj.GetName()
@@ -463,6 +528,7 @@ class ShapeBuilder(ModelBuilder):
     ## --------------------------------------
     ## -------- High level helpers ----------
     ## --------------------------------------
+    @time_function("ShapeBuilder.prepareAllShapes")
     def prepareAllShapes(self):
         shapeTypes = []
         shapeBins = {}

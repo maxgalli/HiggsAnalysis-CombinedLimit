@@ -6,6 +6,7 @@ from math import *
 from sys import exit, stderr, stdout
 
 import ROOT
+from HiggsAnalysis.CombinedLimit.TimingProfiler import time_function
 
 ROOFIT_EXPR = "expr"
 ROOFIT_EXPR_PDF = "EXPR"
@@ -162,6 +163,7 @@ class ModelBuilder(ModelBuilderBase):
         self.physics = physicsModel
         self.physics.setModelBuilder(self)
 
+    @time_function("ModelBuilder.doModel")
     def doModel(self, justCheckPhysicsModel=False):
         if not justCheckPhysicsModel:
             self.doObservables()
@@ -380,10 +382,12 @@ class ModelBuilder(ModelBuilderBase):
                 print(tbc, " -> ", toBeCreated)
                 raise RuntimeError("Cannot produce following rateParams (dependent parameters not found!) %s" % (",".join([t[0] for t in toBeCreated])))
 
+    @time_function("ModelBuilder.doObservables")
     def doObservables(self):
         """create pdf_bin<X> and pdf_bin<X>_bonly for each bin"""
         raise RuntimeError("Not implemented in ModelBuilder")
 
+    @time_function("ModelBuilder.doNuisances")
     def doNuisances(self):
         for cpar in self.DC.discretes:
             self.addDiscrete(cpar)
@@ -806,6 +810,7 @@ class ModelBuilder(ModelBuilderBase):
             if n in self.DC.frozenNuisances:
                 self.out.var(n).setConstant(True)
 
+    @time_function("ModelBuilder.doFillNuisPdfsAndSets")
     def doFillNuisPdfsAndSets(self):
         if self.options.bin:
             # avoid duplicating  _Pdf in list
@@ -835,6 +840,7 @@ class ModelBuilder(ModelBuilderBase):
             self.doObj("nuisancePdf", "PROD", ",".join(["%s_Pdf" % n for n in setNuisPdf]))
             self.doSet("globalObservables", ",".join(self.globalobs))
 
+    @time_function("ModelBuilder.doAutoFlatNuisancePriors")
     def doAutoFlatNuisancePriors(self):
         if len(self.DC.toCreateFlatParam.keys()) > 0:
             for flatNP in self.DC.toCreateFlatParam.items():
@@ -854,6 +860,7 @@ class ModelBuilder(ModelBuilderBase):
                 self.out.var("%s_In" % c_param_name).setConstant(True)
                 self.globalobs.append("%s_In" % c_param_name)
 
+    @time_function("ModelBuilder.doNuisancesGroups")
     def doNuisancesGroups(self):
         # Prepare a dictionary of which group a certain nuisance belongs to
         groupsFor = {}
@@ -892,6 +899,7 @@ class ModelBuilder(ModelBuilderBase):
                 nuisanceargset.add(self.out.var(nuisanceName))
             self.out.defineSet("group_%s" % groupName, nuisanceargset)
 
+    @time_function("ModelBuilder.doExpectedEvents")
     def doExpectedEvents(self):
         self.doComment(" --- Expected events in each bin, for each process ----")
         for b in self.DC.bins:
@@ -1021,14 +1029,17 @@ class ModelBuilder(ModelBuilderBase):
                     else:
                         self.out.safe_import(procNorm)
 
+    @time_function("ModelBuilder.doIndividualModels")
     def doIndividualModels(self):
         """create pdf_bin<X> and pdf_bin<X>_bonly for each bin"""
         raise RuntimeError("Not implemented in ModelBuilder")
 
+    @time_function("ModelBuilder.doCombination")
     def doCombination(self):
         """create model_s and model_b pdfs"""
         raise RuntimeError("Not implemented in ModelBuilder")
 
+    @time_function("ModelBuilder.doModelConfigs")
     def doModelConfigs(self):
         if not self.options.bin:
             raise RuntimeError("Binary mode disabled")
@@ -1086,6 +1097,7 @@ class CountingModelBuilder(ModelBuilder):
         if datacard.hasShapes:
             raise RuntimeError("You're using a CountingModelBuilder for a model that has shapes")
 
+    @time_function("CountingModelBuilder.doObservables")
     def doObservables(self):
         if len(self.DC.obs):
             self.doComment(" ----- observables (already set to observed values) -----")
@@ -1105,6 +1117,7 @@ class CountingModelBuilder(ModelBuilder):
                 self.out.data_obs.add(self.out.set("observables"))
                 self.out.safe_import(self.out.data_obs)
 
+    @time_function("CountingModelBuilder.doIndividualModels")
     def doIndividualModels(self):
         self.doComment(" --- Expected events in each bin, total (S+B and B) ----")
         for b in self.DC.bins:
@@ -1125,6 +1138,7 @@ class CountingModelBuilder(ModelBuilder):
                 f"n_obs_bin{b}, n_exp_bin{b}_bonly, 1",
             )
 
+    @time_function("CountingModelBuilder.doCombination")
     def doCombination(self):
         prefix = "modelObs" if len(self.DC.systs) else "model"  # if no systematics, we build directly the model
         nbins = len(self.DC.bins)
