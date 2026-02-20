@@ -112,8 +112,9 @@ Combine::Combine() :
     statOptions_("Common statistics options"),
     ioOptions_("Common input-output options"),
     miscOptions_("Common miscellaneous options"),
-    rMin_(std::numeric_limits<float>::quiet_NaN()), 
+    rMin_(std::numeric_limits<float>::quiet_NaN()),
     rMax_(std::numeric_limits<float>::quiet_NaN()) {
+    RooRealVar::enableSilentClipping();
     namespace po = boost::program_options;
     statOptions_.add_options()
       //("systematics,S", po::value<bool>(&withSystematics)->default_value(true), "Include constrained systematic uncertainties, -S 0 will ignore systematics constraint terms in the datacard.")
