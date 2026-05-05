@@ -221,4 +221,67 @@
   <class name="RooPowerLawPdf" />
   <class name="RooSumTwoPowerLawPdf" />
   <class name="CombineUtils" />
+  <read sourceClass="RooBernsteinFast&lt;1&gt;" targetClass="RooBernsteinFast&lt;1&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          newObj->migrateFromV1(
+              dynamic_cast<RooAbsRealLValue&>(const_cast<RooAbsReal&>(onfile._x.arg())),
+              onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;2&gt;" targetClass="RooBernsteinFast&lt;2&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          newObj->migrateFromV1(
+              dynamic_cast<RooAbsRealLValue&>(const_cast<RooAbsReal&>(onfile._x.arg())),
+              onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;3&gt;" targetClass="RooBernsteinFast&lt;3&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          newObj->migrateFromV1(
+              dynamic_cast<RooAbsRealLValue&>(const_cast<RooAbsReal&>(onfile._x.arg())),
+              onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;4&gt;" targetClass="RooBernsteinFast&lt;4&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          newObj->migrateFromV1(
+              dynamic_cast<RooAbsRealLValue&>(const_cast<RooAbsReal&>(onfile._x.arg())),
+              onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;5&gt;" targetClass="RooBernsteinFast&lt;5&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          newObj->migrateFromV1(
+              dynamic_cast<RooAbsRealLValue&>(const_cast<RooAbsReal&>(onfile._x.arg())),
+              onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;6&gt;" targetClass="RooBernsteinFast&lt;6&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          newObj->migrateFromV1(
+              dynamic_cast<RooAbsRealLValue&>(const_cast<RooAbsReal&>(onfile._x.arg())),
+              onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;7&gt;" targetClass="RooBernsteinFast&lt;7&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          newObj->migrateFromV1(
+              dynamic_cast<RooAbsRealLValue&>(const_cast<RooAbsReal&>(onfile._x.arg())),
+              onfile._coefList);
+        ]]>
+  </read>
 </lcgdict>
