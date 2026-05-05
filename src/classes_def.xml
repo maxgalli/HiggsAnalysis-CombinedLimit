@@ -221,4 +221,64 @@
   <class name="RooPowerLawPdf" />
   <class name="RooSumTwoPowerLawPdf" />
   <class name="CombineUtils" />
+  <read sourceClass="RooBernsteinFast&lt;1&gt;" targetClass="RooBernsteinFast&lt;1&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          std::string newName(newObj->GetName());
+          std::string newTitle(newObj->GetTitle());
+          newObj->RooBernsteinFast<1>::~RooBernsteinFast();
+          new (newObj) RooBernsteinFast<1>(newName.c_str(), newTitle.c_str(),
+                       const_cast<RooAbsReal&>(onfile._x.arg()),
+                       onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;2&gt;" targetClass="RooBernsteinFast&lt;2&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          std::string newName(newObj->GetName());
+          std::string newTitle(newObj->GetTitle());
+          newObj->RooBernsteinFast<2>::~RooBernsteinFast();
+          new (newObj) RooBernsteinFast<2>(newName.c_str(), newTitle.c_str(),
+                       const_cast<RooAbsReal&>(onfile._x.arg()),
+                       onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;3&gt;" targetClass="RooBernsteinFast&lt;3&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          std::string newName(newObj->GetName());
+          std::string newTitle(newObj->GetTitle());
+          newObj->RooBernsteinFast<3>::~RooBernsteinFast();
+          new (newObj) RooBernsteinFast<3>(newName.c_str(), newTitle.c_str(),
+                       const_cast<RooAbsReal&>(onfile._x.arg()),
+                       onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;4&gt;" targetClass="RooBernsteinFast&lt;4&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          std::string newName(newObj->GetName());
+          std::string newTitle(newObj->GetTitle());
+          newObj->RooBernsteinFast<4>::~RooBernsteinFast();
+          new (newObj) RooBernsteinFast<4>(newName.c_str(), newTitle.c_str(),
+                       const_cast<RooAbsReal&>(onfile._x.arg()),
+                       onfile._coefList);
+        ]]>
+  </read>
+  <read sourceClass="RooBernsteinFast&lt;5&gt;" targetClass="RooBernsteinFast&lt;5&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          std::string newName(newObj->GetName());
+          std::string newTitle(newObj->GetTitle());
+          newObj->RooBernsteinFast<5>::~RooBernsteinFast();
+          new (newObj) RooBernsteinFast<5>(newName.c_str(), newTitle.c_str(),
+                       const_cast<RooAbsReal&>(onfile._x.arg()),
+                       onfile._coefList);
+        ]]>
+  </read>
 </lcgdict>
