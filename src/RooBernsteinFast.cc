@@ -2,4 +2,4 @@
 
 using namespace RooFit;
 
-templateClassImp(RooBernsteinCoeffs)
+templateClassImp(RooBernsteinFast)
