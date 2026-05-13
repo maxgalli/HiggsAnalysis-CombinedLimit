@@ -281,6 +281,14 @@ if(BUILD_TESTS AND NOT DEFINED standalone_tests)
 endif()
 
 
+# RooBernsteinFast v1 -> v2 schema evolution
+COMBINE_ADD_TEST(roo_bernstein_fast_schema_evolution
+    COMMAND python3 test_roo_bernstein_fast_schema_evolution.py
+    COPY_TO_BUILDDIR ${REPO}/test/test_roo_bernstein_fast_schema_evolution.py
+                    ${REPO}/data/ci/test_bernstein_fast_v1.root
+    PASSREGEX "All checks passed"
+)
+
 # test_interference.py
 COMBINE_ADD_TEST(test_interference_py
     COMMAND python3 test_interference.py
