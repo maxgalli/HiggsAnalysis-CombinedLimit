@@ -221,4 +221,16 @@
   <class name="RooPowerLawPdf" />
   <class name="RooSumTwoPowerLawPdf" />
   <class name="CombineUtils" />
+  <read sourceClass="RooBernsteinFast&lt;3&gt;" targetClass="RooBernsteinFast&lt;3&gt;" version="[1]"
+        source="RooRealProxy _x; RooListProxy _coefList"
+        target="">
+        <![CDATA[
+          std::string newName(newObj->GetName());
+          std::string newTitle(newObj->GetTitle());
+          newObj->RooBernsteinFast<3>::~RooBernsteinFast();
+          new (newObj) RooBernsteinFast<3>(newName.c_str(), newTitle.c_str(),
+                       const_cast<RooAbsReal&>(onfile._x.arg()),
+                       onfile._coefList);
+        ]]>
+  </read>
 </lcgdict>
