@@ -17,6 +17,13 @@ public:
               RooAbsReal& _n2
            );
 
+  // In-place migration from v1 (RooAbsPdf base) to v2 (RooCrystalBall base).
+  // Uses TClass reflection to set RooCrystalBall's private proxy members
+  // without calling the destructor, which would corrupt ROOT's TProcessID state.
+  void migrateFromV1(RooAbsReal& x, RooAbsReal& mean, RooAbsReal& width,
+                     RooAbsReal& alpha1, RooAbsReal& n1,
+                     RooAbsReal& alpha2, RooAbsReal& n2);
+
   ClassDefOverride(RooDoubleCBFast, 2)
 };
 #endif
