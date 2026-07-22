@@ -195,6 +195,34 @@ After installation the binaries and Python modules live inside the environment, 
 conda activate combine
 ```
 
+##### Standalone compilation with `pixi` (CMake-based)
+If you have access to CVMFS (for example on `lxplus`), a ready-to-use installation of `pixi` is available and can be set up by sourcing:
+
+```
+source /cvmfs/cms-griddata.cern.ch/cat/sw/pixi/latest/setup.sh
+```
+
+Otherwise, follow the [`pixi` installation instructions](https://pixi.sh/latest/#installation).
+
+[`pixi`](https://pixi.sh) is an alternative to `conda` that resolves the same conda-forge dependencies but is workspace-centric: instead of a named global environment, it manages a project-local environment (in a `.pixi/` folder) described by the `pixi.toml` manifest that ships with this repository. The manifest also defines `configure`, `build` and `install` tasks, so the whole build is a single command:
+
+```
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+cd HiggsAnalysis/CombinedLimit
+
+# Solve/install the dependencies and run the CMake configure + build + install
+# tasks in one go (each task runs inside the pixi environment automatically)
+pixi run install
+```
+
+`pixi run` activates the environment for the duration of the command, so `$CONDA_PREFIX` is set and no separate activation step is needed. To get an interactive shell with the environment active (equivalent to `conda activate`), use:
+
+```
+pixi shell   # leave it again with `exit`
+```
+
+The `configure`/`build`/`install` tasks in `pixi.toml` wrap the same CMake invocation as the conda recipe above (including `-DUSE_VDT=OFF`). Advanced users who need to pass extra CMake options can still run the CMake steps by hand from inside `pixi shell`.
+
 #### Pre-compiled image with CVMFS dependency 
 
 Pre-compiled versions of the tool are available as container images from the [GitLab CMS-analysis repository](http://gitlab-registry.cern.ch/cms-analysis/general/combine-container). This container is built together with the [`CombineHarvester`](http://cms-analysis.github.io/CombineHarvester/) package and is **recommended for users with CVMFS access**. 
