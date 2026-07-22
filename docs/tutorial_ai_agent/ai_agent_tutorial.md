@@ -24,7 +24,7 @@ helps.
      execution MCP on one side, the skill on the other. Add as architecture.png -->
 ![Architecture of the Combine AI assistant](architecture.png)
 
-There are three ingredients:
+These are the main ingredients:
 
 - **The agent**: the chat client you talk to. Two are supported:
   **combagent** (a lightweight terminal client, published on CVMFS so there is
@@ -48,15 +48,14 @@ When you ask the agent to actually *run* something, it uses one of two paths, in
 order of preference.
 
 1. **Your own Combine environment (recommended).** If you have `combine` on your
-   `PATH` — i.e. you sourced a Combine environment (`cmsenv` inside a CMSSW
-   release) *before* launching the agent — it simply runs Combine in your
+   `PATH` (i.e. you sourced a Combine environment *before* launching the agent) it simply runs Combine in your
    current working directory, against your real datacards, with no size limits.
    This is the main mode and the one this tutorial uses.
 
 2. **A remote execution server (fallback).** If Combine is *not* on your `PATH`,
    the agent falls back to a shared execution server running on CERN's cloud
-   (PaaS). It ships Combine itself and runs your command in an isolated sandbox,
-   so it works even with no local Combine install — but inputs are size-capped
+   ([PaaS](https://paas.docs.cern.ch/)). It ships Combine itself and runs your command in an isolated sandbox,
+   so it works even with no local Combine install. However, inputs are size-capped
    and timeouts are shorter, so it is best for quick checks rather than large or
    long fits.
 
@@ -107,7 +106,7 @@ cmsenv
 cd /path/to/your/analysis    # where your datacards live
 ```
 
-**Step 2: source the assistant setup.** This puts the `combagent` client on
+**Step 2: source the assistant setup.** This puts the `combagent` client (our maintained fork of opencode) on
 your `PATH` and wires in the Combine tools, skill, and model configuration:
 
 ```shell
@@ -133,14 +132,14 @@ Some things to try:
   agent searches the docs and answers with a link.
 - *"Run an asymptotic upper limit on `datacard.txt` and report the expected
   limit."* — because you sourced Combine in step 1, it runs
-  `combine -M AsymptoticLimits -d datacard.txt` in your directory and reports
+  `combine -M AsymptoticLimits datacard.txt` in your directory and reports
   the result.
 - *"I get `Error: ... covariance matrix ...` from FitDiagnostics — what's going
   on?"* — the agent checks the forum and code and proposes a fix.
 
 !!! note
-    The `litellm` and `nrp` models require the CERN network (lxplus/SWAN, or
-    VPN). The self-hosted `cern-vm` model is CERN-network-only as well.
+    The `litellm` models and the self-hosted `cern-vm` require the CERN network (lxplus/SWAN, or
+    VPN).
 
 ## Example 2: Claude Code, locally
 
@@ -166,7 +165,7 @@ claude
 ```
 
 Claude Code automatically registers the Combine retrieval and execution servers
-and discovers the skill, and it uses its own (Anthropic) model — so there is no
+and discovers the skill, and it uses its own (Anthropic) model, so there is no
 separate model key to configure. You can then ask the same kinds of questions as
 above.
 
