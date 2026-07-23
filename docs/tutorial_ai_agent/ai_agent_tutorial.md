@@ -76,12 +76,19 @@ you pick one with the `--model <provider>/<model>` flag (or use the default).
 | `nrp` | A free token from the [National Research Platform](https://nrp.ai/llms/) | Open-weight models, free for researchers from American universities. |
 | `cern-vm` | Nothing (self-hosted) | No key at all, but **CPU-only and very slow** — a last-resort fallback. |
 
-For most CERN users the **`litellm`** provider is the right default. 
-If you don't have a subscription, a LiteLLM token can be obtained by subscribing to the e-group at this website [https://gms.web.cern.ch/group/lumi-api-access](https://gms.web.cern.ch/group/lumi-api-access).
-The key can then be exported by typing:
+For most CERN users the **`litellm`** provider is the right default. Access is
+granted by subscribing to the e-group
+[lumi-api-access](https://gms.web.cern.ch/group/lumi-api-access). Once you are a
+member, you do **not** need to export anything: the setup script (step 2 below)
+reads a shared key from EOS automatically and prints a confirmation line
+(`LITELLM_API_KEY loaded from ...`). If you are not yet a member, it instead
+prints a short banner explaining how to subscribe.
+
+If you would rather use your own LiteLLM key, export it before launching and the
+setup script will not overwrite it:
 
 ```shell
-export LITELLM_API_KEY=<your-key>
+export LITELLM_API_KEY=<your-key>   # optional — only if you use your own key
 ```
 
 To switch model for a session, pass `--model`, e.g. to use the (slow,
@@ -107,12 +114,16 @@ cd /path/to/your/analysis    # where your datacards live
 ```
 
 **Step 2: source the assistant setup.** This puts the `combagent` client (our maintained fork of opencode) on
-your `PATH` and wires in the Combine tools, skill, and model configuration:
+your `PATH`, wires in the Combine tools, skill, and model configuration, and —
+if you are a member of the `lumi-api-access` e-group — loads the CERN LiteLLM
+key for you:
 
 ```shell
 source /cvmfs/cms-griddata.cern.ch/cat/sw/combine-assistant/latest/bin/setup.sh
-export LITELLM_API_KEY=<your-key>
 ```
+
+You only need to `export LITELLM_API_KEY=<your-key>` here if you are using your
+own key instead of the shared one.
 
 **Step 3: launch the agent:**
 
