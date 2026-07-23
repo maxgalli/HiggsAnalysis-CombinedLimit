@@ -16,6 +16,15 @@ configure = 'cmake -S . -B ../build_combine -G Ninja -DCMAKE_INSTALL_PREFIX=$CON
 build = { cmd = "cmake --build ../build_combine", depends-on = ["configure"] }
 install = { cmd = "cmake --install ../build_combine", depends-on = ["build"] }
 
+# CI-only variant: identical to the chain above but with -DBUILD_TESTS=ON so the
+# unit tests are compiled. Kept separate from `configure`/`install` on purpose,
+# so a plain `pixi run install` never builds tests for regular users. The
+# configure line must stay in sync with `configure` above (only the extra
+# -DBUILD_TESTS=ON differs).
+configure-tests = 'cmake -S . -B ../build_combine -G Ninja -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX -DCMAKE_INSTALL_PYTHONDIR=lib/python$(python -c "import sysconfig; print(sysconfig.get_python_version())")/site-packages -DUSE_VDT=OFF -DBUILD_TESTS=ON'
+build-tests = { cmd = "cmake --build ../build_combine", depends-on = ["configure-tests"] }
+install-tests = { cmd = "cmake --install ../build_combine", depends-on = ["build-tests"] }
+
 [dependencies]
 python = "3.12.*"
 root = "6.34.*"
