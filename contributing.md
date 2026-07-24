@@ -163,10 +163,10 @@ When creating a new release, follow this checklist to ensure version strings are
 3. **Update test reference files**
    - Regenerate reference files with the new version (note that you will have to recompile using `-DBUILD_TESTS=TRUE`):
      ```bash
-     cd build/test
+     cd build
+     ctest -j$(nproc)
      sh create_reference_files.sh
-     cp *.out ../../test/references
-     cd ../..
+     cp references/*.out /path/to/source/test/references/
      ```
 
 4. **Verify version consistency**

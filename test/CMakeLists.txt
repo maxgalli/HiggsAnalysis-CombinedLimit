@@ -395,15 +395,16 @@ set_property(GLOBAL APPEND PROPERTY ALL_COMBINE_COMMANDS
 #
 #   cd build
 #   ctest -j$(nproc)
-#   cd test
 #   sh create_reference_files.sh
+#   cp references/*.out /path/to/source/test/references/
 #
-# You have now a new reference files directory in build/test/references that
-# you can use to replace test/references in the repository.
+# The script is placed in CMAKE_CURRENT_BINARY_DIR, which is the same
+# directory where CTest generates the workspace .root files. This is
+# build/test/ for non-standalone builds and build/ for standalone builds.
 
 get_property(all_combine_commands GLOBAL PROPERTY ALL_COMBINE_COMMANDS)
 message(STATUS "All combine commands:")
-set(_outfile "${CMAKE_BINARY_DIR}/test/create_reference_files.sh")
+set(_outfile "${CMAKE_CURRENT_BINARY_DIR}/create_reference_files.sh")
 file(WRITE "${_outfile}" "#!/usr/bin/env bash\n\n")
 file(APPEND "${_outfile}" "rm -rf references\n\n")
 file(APPEND "${_outfile}" "mkdir references\n\n")
