@@ -32,19 +32,19 @@ should be sufficient. To choose a release version, you can find the latest
 releases on github under
 [https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/releases](https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/releases)
 
-#### Combine v10 - recommended version
+#### Combine v11 - recommended version
 
 The nominal installation method is inside CMSSW. The current release targets
-the CMSSW `14_1_X` series because of the recent switch to el9 at lxplus machines.
+the CMSSW `16_0_X` series.
 
-Currently, the recommended tag is **v10.6.1**: [see release notes](https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/releases/tag/v10.6.1)
+Currently, the recommended tag is **v11.0.0**: [see release notes](https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/releases/tag/v11.0.0)
 The `git clone` command below contains this tag and is optimised to reduce disk usage.
 
 ```sh
-cmsrel CMSSW_14_1_0_pre4
-cd CMSSW_14_1_0_pre4/src
+cmsrel CMSSW_16_0_0
+cd CMSSW_16_0_0/src
 cmsenv
-git -c advice.detachedHead=false clone --depth 1 --branch v10.6.1 https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+git -c advice.detachedHead=false clone --depth 1 --branch v11.0.0 https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
 cd HiggsAnalysis/CombinedLimit
 scramv1 b clean; scramv1 b -j$(nproc --ignore=2) # always make a clean build, with n - 2 cores on the system
 ```
@@ -158,7 +158,7 @@ A typical environment that can be used on `lxplus` is the [LCG software stack](h
 
 It can be activated as follows
 ```bash
-LCG_RELEASE=LCG_106 # includes ROOT 6.32, like CMSSW_14_1_0_pre4
+LCG_RELEASE=LCG_106 # includes ROOT 6.32, like CMSSW_16_0_0
 # LCG_RELEASE=dev3/latest # includes nightly build of ROOT master, useful for development
 LCG_PATH=/cvmfs/sft.cern.ch/lcg/views/$LCG_RELEASE/x86_64-el9-gcc13-opt
 
@@ -236,7 +236,7 @@ Then in the Apptainer shell:
 
 ```shell
 source /cvmfs/cms.cern.ch/cmsset_default.sh
-cd /home/cmsusr/CMSSW_14_1_0_pre4/
+cd /home/cmsusr/CMSSW_16_0_0/
 cmsenv  # Ignore errors
 ```
 

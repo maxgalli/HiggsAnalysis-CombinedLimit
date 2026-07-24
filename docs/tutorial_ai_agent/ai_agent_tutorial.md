@@ -108,7 +108,7 @@ Use your own CMSSW area with Combine built in it (see the
 [installation instructions](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/latest/#within-cmssw-recommended-for-cms-users)):
 
 ```shell
-cd /path/to/CMSSW_14_1_0_pre4/src
+cd /path/to/CMSSW_16_0_0/src
 cmsenv
 cd /path/to/your/analysis    # where your datacards live
 ```
