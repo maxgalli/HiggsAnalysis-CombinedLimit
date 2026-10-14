@@ -263,6 +263,7 @@ void CMSHistSum::initialize() const {
     flat_binerrors_.insert(flat_binerrors_.end(), &e[0], &e[0] + nb);
   }
   flat_staging_.resize(nb, 0.);
+  flattenBinTypes();
 
   sentry_.addVars(morphpars_);
   sentry_.addVars(coeffpars_);
@@ -278,6 +279,29 @@ void CMSHistSum::initialize() const {
   binsentry_.setValueDirty();
 
   initialized_ = true;
+}
+
+// Flat copy of bintypes_ for the kernel. bintypes_ is filled by
+// setupBinPars(), after initialize(), which therefore calls this again.
+void CMSHistSum::flattenBinTypes() const {
+  unsigned nb = cache_.size();
+  bintype_offsets_.assign(1, 0);
+  flat_bintypes_.clear();
+  binpar_index_.clear();
+  // binpars_ holds one parameter per entry of type 1, 2 or 3, in the order
+  // of the bins and, within a bin, of the entries (as in initialize()).
+  int r = 0;
+  for (unsigned j = 0; j < nb; ++j) {
+    if (j < bintypes_.size()) {
+      for (unsigned t : bintypes_[j]) {
+        flat_bintypes_.push_back(t);
+        binpar_index_.push_back(t >= 1 && t < 4 ? r++ : -1);
+      }
+    }
+    bintype_offsets_.push_back(flat_bintypes_.size());
+  }
+  assert(r == binpars_.getSize());
+  binparvals_.resize(r, 0.);
 }
 
 void CMSHistSum::updateMorphs() const {
@@ -419,32 +443,16 @@ void CMSHistSum::updateCache() const {
     #if HFVERBOSE > 0
       std::cout << "Assigning bin shifts\n";
     #endif
-    for (unsigned j = 0; j < bintypes_.size(); ++j) {
-      cache_[j] = valsum_[j];
-      if (bintypes_[j][0] == 0) {
-        continue;
-      } else if (bintypes_[j][0] == 1) {
-        double x = vbinpars_[j][0]->getVal();
-        cache_[j] += toterr_[j] * x;
-      } else {
-        for (unsigned i = 0; i < bintypes_[j].size(); ++i) {
-          if (bintypes_[j][i] == 2) {
-            // Poisson: this is a multiplier on the process yield
-            scaledbinmods_[i][j] = ((vbinpars_[j][i]->getVal() - 1.) *
-                 compcache_[i][j]);
-            cache_[j] += (scaledbinmods_[i][j] * coeffvals_[i]);
-          } else if (bintypes_[j][i] == 3) {
-            // Gaussian This is the addition of the scaled error
-            scaledbinmods_[i][j] = vbinpars_[j][i]->getVal() * binerrors_[i][j];
-            cache_[j] += (scaledbinmods_[i][j] * coeffvals_[i]);
-          }
-        }
-      }
+    for (unsigned r = 0; r < binparvals_.size(); ++r) {
+      binparvals_[r] = static_cast<RooAbsReal const*>(binpars_.at(r))->getVal();
     }
+    RooFit::Detail::MathFuncs::cmsHistSumBinShifts(cache_.size(), &valsum_[0], toterr_.data(), morphed_.data(),
+                                                   coeffvals_.data(), flat_binerrors_.data(),
+                                                   bintype_offsets_.data(), flat_bintypes_.data(),
+                                                   binpar_index_.data(), binparvals_.data(), &cache_[0]);
     #if HFVERBOSE > 0
       std::cout << "Done assigning bin shifts\n";
     #endif
-    cache_.CropUnderflows();
     binsentry_.reset();
   }
 }
@@ -706,6 +714,7 @@ RooArgList * CMSHistSum::setupBinPars(double poissonThreshold) {
       }
     }
   }
+  flattenBinTypes();
   return res;
 }
 

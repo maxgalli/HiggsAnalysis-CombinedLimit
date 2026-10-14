@@ -137,6 +137,10 @@ protected:
   mutable std::vector<double> morphed_; //! morphed templates, process by process
   mutable std::vector<double> flat_binerrors_; //! binerrors_, active bins only
   mutable std::vector<double> flat_staging_; //! scratch space for the kernel
+  mutable std::vector<int> bintype_offsets_; //! bintypes_, flattened: entries of bin j start here
+  mutable std::vector<int> flat_bintypes_; //! bintypes_, flattened
+  mutable std::vector<int> binpar_index_; //! index in binpars_ of each entry of flat_bintypes_, -1 if none
+  mutable std::vector<double> binparvals_; //! values of binpars_
 
   RooListProxy external_morphs_;
   std::vector<int> external_morph_indices_;
@@ -146,6 +150,7 @@ protected:
   }
 
   void initialize() const;
+  void flattenBinTypes() const;
   void updateCache() const;
   inline double smoothStepFunc(double x, int const& ip) const;
 

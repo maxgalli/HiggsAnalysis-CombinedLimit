@@ -139,6 +139,61 @@ inline void cmsHistSumAccumulate(int nBins, int nProcs, double const *templates,
    }
 }
 
+/// Bin contents of a CMSHistSum: the process sum plus the shifts from the
+/// autoMCStats bin parameters, floored at 1e-9. The arithmetic of the second
+/// part of CMSHistSum::updateCache().
+///
+/// The bin types of bin j are binType[binTypeOffset[j] .. binTypeOffset[j+1]):
+/// either a single entry (0: no parameter, 1: one parameter for the whole bin)
+/// or one entry per process (2: Poisson, 3: Gaussian, 4: no parameter).
+/// A bin without entries has no parameters either.
+///
+/// valsum, toterr  [nBins]           output of cmsHistSumAccumulate()
+/// morphed         [nProcs*nBins]    output of cmsHistSumMorph()
+/// coeffs          [nProcs]          normalisation of each process
+/// binErrors       [nProcs*nBins]    MC-statistical error of each process
+/// binTypeOffset   [nBins+1]
+/// binType         [binTypeOffset[nBins]]
+/// binParIndex     [binTypeOffset[nBins]]  index in binPars of each entry, -1 if none
+/// binPars         values of the bin parameters
+/// out             [nBins]           bin contents
+inline void cmsHistSumBinShifts(int nBins, double const *valsum, double const *toterr, double const *morphed,
+                                double const *coeffs, double const *binErrors, int const *binTypeOffset,
+                                int const *binType, int const *binParIndex, double const *binPars, double *out)
+{
+   for (int j = 0; j < nBins; ++j) {
+      out[j] = valsum[j];
+      int first = binTypeOffset[j];
+      int nEntries = binTypeOffset[j + 1] - first;
+      if (nEntries == 0 || binType[first] == 0) {
+         continue;
+      }
+      if (binType[first] == 1) {
+         out[j] += toterr[j] * binPars[binParIndex[first]];
+         continue;
+      }
+      for (int ip = 0; ip < nEntries; ++ip) {
+         int k = first + ip;
+         if (binType[k] == 2) {
+            // Poisson: a multiplier on the process yield. As in
+            // CMSHistSum::updateCache(), it is applied to the morphed template
+            // before the 1e-9 floor and, for LogQuadLinear processes, still in
+            // log space.
+            out[j] += ((binPars[binParIndex[k]] - 1.) * morphed[ip * nBins + j]) * coeffs[ip];
+         } else if (binType[k] == 3) {
+            // Gaussian: the scaled error is added
+            out[j] += (binPars[binParIndex[k]] * binErrors[ip * nBins + j]) * coeffs[ip];
+         }
+      }
+   }
+
+   // FastTemplate::CropUnderflows()
+   for (int j = 0; j < nBins; ++j) {
+      if (out[j] < 1e-9)
+         out[j] = 1e-9;
+   }
+}
+
 inline void fastVerticalInterpHistPdf2(int nBins, int nCoefs, double const *coefs, double const *nominal,
                                        double const *binWidth, double const *morphsSum, double const *morphsDiff,
                                        double smoothRegion, double *out)
