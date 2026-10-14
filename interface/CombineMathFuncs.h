@@ -24,6 +24,50 @@ inline double smoothStepFunc(double x, double smoothRegion)
    return 0.125 * xnorm * (xnorm2 * (3. * xnorm2 - 10.) + 15);
 }
 
+/// Vertical morphing of the processes of a CMSHistSum: the arithmetic of
+/// CMSHistSum::updateMorphs() without external morphs or FAST_VERTICAL_MORPH.
+///
+/// nBins         number of active bins
+/// templates     [nTemplates*nBins]  nominal templates and (sum, diff) pairs, one after the other
+/// processField  [nProcs]            index in templates of the nominal of each process
+/// morphField    [nProcs*nMorphs]    index in templates of the (sum, diff) pair of morph iv
+///                                   for process ip, or -1 if the morph does not affect it
+/// logSpace      [nProcs]            1 if the process is morphed in log space (LogQuadLinear)
+/// smoothRegion  [nProcs]            smoothing region of each process
+/// morphs        [nMorphs]           values of the morphing parameters
+/// out           [nProcs*nBins]      morphed templates, still in log space for LogQuadLinear
+inline void cmsHistSumMorph(int nBins, int nProcs, int nMorphs, double const *templates, int const *processField,
+                            int const *morphField, int const *logSpace, double const *smoothRegion,
+                            double const *morphs, double *out)
+{
+   for (int ip = 0; ip < nProcs; ++ip) {
+      double const *nominal = templates + processField[ip] * nBins;
+      double *proc = out + ip * nBins;
+      for (int j = 0; j < nBins; ++j) {
+         // FastTemplate::Log() maps non-positive values to -999
+         proc[j] = logSpace[ip] ? (nominal[j] > 0 ? std::log(nominal[j]) : -999.) : nominal[j];
+      }
+   }
+
+   for (int iv = 0; iv < nMorphs; ++iv) {
+      double x = morphs[iv];
+      for (int ip = 0; ip < nProcs; ++ip) {
+         int field = morphField[ip * nMorphs + iv];
+         if (field == -1)
+            continue;
+         double const *sum = templates + field * nBins;
+         double const *diff = templates + (field + 1) * nBins;
+         double a = 0.5 * x;
+         double b = smoothStepFunc(x, smoothRegion[ip]);
+         double *proc = out + ip * nBins;
+         // Same expression as FastTemplate::Meld()
+         for (int j = 0; j < nBins; ++j) {
+            proc[j] += a * (diff[j] + b * sum[j]);
+         }
+      }
+   }
+}
+
 inline void fastVerticalInterpHistPdf2(int nBins, int nCoefs, double const *coefs, double const *nominal,
                                        double const *binWidth, double const *morphsSum, double const *morphsDiff,
                                        double smoothRegion, double *out)

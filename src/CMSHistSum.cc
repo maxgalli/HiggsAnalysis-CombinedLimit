@@ -14,6 +14,7 @@
 #include "RooGaussian.h"
 #include "RooProduct.h"
 #include "vectorized.h"
+#include "../interface/CombineMathFuncs.h"
 
 #define HFVERBOSE 0
 
@@ -243,6 +244,19 @@ void CMSHistSum::initialize() const {
   scaledbinmods_.resize(n_procs_, std::vector<double>(nb, 0.));
   coeffvals_.resize(n_procs_, 0.);
 
+  flat_templates_.clear();
+  flat_templates_.reserve(storage_.size() * nb);
+  for (auto const& t : storage_) {
+    assert(t.size() == nb);
+    flat_templates_.insert(flat_templates_.end(), &t[0], &t[0] + nb);
+  }
+  log_space_.resize(n_procs_);
+  for (int ip = 0; ip < n_procs_; ++ip) {
+    log_space_[ip] = vtype_[ip] == CMSHistFunc::VerticalSetting::LogQuadLinear;
+  }
+  morphvals_.resize(n_morphs_, 0.);
+  morphed_.resize(n_procs_ * nb, 0.);
+
   sentry_.addVars(morphpars_);
   sentry_.addVars(coeffpars_);
   binsentry_.addVars(binpars_);
@@ -260,6 +274,25 @@ void CMSHistSum::initialize() const {
 }
 
 void CMSHistSum::updateMorphs() const {
+  // Default path: no external morphs and FAST_VERTICAL_MORPH off, computed by
+  // the kernel shared with the generated code.
+  if (fast_mode_ == 0 && external_morph_indices_.empty()) {
+    unsigned nb = cache_.size();
+    for (int iv = 0; iv < n_morphs_; ++iv) {
+      morphvals_[iv] = vmorphpars_[iv]->getVal();
+    }
+    RooFit::Detail::MathFuncs::cmsHistSumMorph(nb, n_procs_, n_morphs_, flat_templates_.data(),
+                                               process_fields_.data(), vmorph_fields_.data(), log_space_.data(),
+                                               vsmooth_par_.data(), morphvals_.data(), morphed_.data());
+    for (int ip = 0; ip < n_procs_; ++ip) {
+      std::copy(morphed_.begin() + ip * nb, morphed_.begin() + (ip + 1) * nb, &compcache_[ip][0]);
+    }
+    // FAST_VERTICAL_MORPH continues from these values on the next call
+    vertical_prev_vals_ = morphvals_;
+    if (enable_fast_vertical_) fast_mode_ = 1;
+    return;
+  }
+
   // set up pointers ahead of time for quick loop
   std::vector<CMSExternalMorph*> process_morphs(compcache_.size(), nullptr);
   // if any external morphs are dirty, disable fast_mode_

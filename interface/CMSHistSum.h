@@ -129,6 +129,13 @@ protected:
   mutable int fast_mode_; //! not to be serialized
   static bool enable_fast_vertical_; //! not to be serialized
 
+  // Inputs and output of the CMSHistSum kernel in CombineMathFuncs.h, rebuilt
+  // from the members above by initialize()
+  mutable std::vector<double> flat_templates_; //! storage_, active bins only
+  mutable std::vector<int> log_space_; //! vtype_ == LogQuadLinear
+  mutable std::vector<double> morphvals_; //! values of morphpars_
+  mutable std::vector<double> morphed_; //! morphed templates, process by process
+
   RooListProxy external_morphs_;
   std::vector<int> external_morph_indices_;
 
