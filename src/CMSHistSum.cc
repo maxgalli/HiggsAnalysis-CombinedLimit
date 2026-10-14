@@ -256,6 +256,13 @@ void CMSHistSum::initialize() const {
   }
   morphvals_.resize(n_morphs_, 0.);
   morphed_.resize(n_procs_ * nb, 0.);
+  flat_binerrors_.clear();
+  flat_binerrors_.reserve(n_procs_ * nb);
+  for (auto const& e : binerrors_) {
+    assert(e.size() == nb);
+    flat_binerrors_.insert(flat_binerrors_.end(), &e[0], &e[0] + nb);
+  }
+  flat_staging_.resize(nb, 0.);
 
   sentry_.addVars(morphpars_);
   sentry_.addVars(coeffpars_);
@@ -359,6 +366,12 @@ void CMSHistSum::updateMorphs() const {
     vertical_prev_vals_[iv] = x;
   }
 
+  // updateCache() reads the morphed templates from morphed_
+  unsigned nb = cache_.size();
+  for (int ip = 0; ip < n_procs_; ++ip) {
+    std::copy(&compcache_[ip][0], &compcache_[ip][0] + nb, morphed_.begin() + ip * nb);
+  }
+
   if (enable_fast_vertical_) fast_mode_ = 1;
 }
 
@@ -388,19 +401,10 @@ void CMSHistSum::updateCache() const {
       std::cout << "Updated coeffs\n";
     #endif
 
-    valsum_.Clear();
-    std::fill(err2sum_.begin(), err2sum_.end(), 0.);
-    for (unsigned i = 0; i < vcoeffpars_.size(); ++i) {
-      staging_ = compcache_[i];
-      if (vtype_[i] == CMSHistFunc::VerticalSetting::LogQuadLinear) {
-        staging_.Exp();
-        staging_.Scale(storage_[process_fields_[i]].Integral() / staging_.Integral());
-      }
-      staging_.CropUnderflows();
-      vectorized::mul_add(valsum_.size(), coeffvals_[i], &(staging_[0]), &valsum_[0]);
-      vectorized::mul_add_sqr(valsum_.size(), coeffvals_[i], &(binerrors_[i][0]), &err2sum_[0]);
-    }
-    vectorized::sqrt(valsum_.size(), &err2sum_[0], &toterr_[0]);
+    RooFit::Detail::MathFuncs::cmsHistSumAccumulate(valsum_.size(), n_procs_, flat_templates_.data(),
+                                                    process_fields_.data(), log_space_.data(), morphed_.data(),
+                                                    coeffvals_.data(), flat_binerrors_.data(), flat_staging_.data(),
+                                                    &valsum_[0], toterr_.data());
     cache_ = valsum_;
     #if HFVERBOSE > 0
       std::cout << "Updated cache\n";

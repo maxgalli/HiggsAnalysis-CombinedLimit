@@ -68,6 +68,77 @@ inline void cmsHistSumMorph(int nBins, int nProcs, int nMorphs, double const *te
    }
 }
 
+/// Compensated (Kahan) sum, with the same operations as KahanAccumulator,
+/// which FastTemplate::Integral() uses.
+inline double cmsHistSumKahan(double const *values, int n)
+{
+   double sum = 0.;
+   double compensation = 0.;
+   for (int i = 0; i < n; ++i) {
+      double y = values[i] - compensation;
+      double sumnew = sum + y;
+      double sumerr = sumnew - sum;
+      compensation = sumerr - y;
+      sum = sumnew;
+   }
+   return sum;
+}
+
+/// Sum of the processes of a CMSHistSum and total MC-statistical error per
+/// bin: the arithmetic of the first part of CMSHistSum::updateCache().
+///
+/// templates, processField, logSpace  as in cmsHistSumMorph()
+/// morphed    [nProcs*nBins]  output of cmsHistSumMorph()
+/// coeffs     [nProcs]        normalisation of each process
+/// binErrors  [nProcs*nBins]  MC-statistical error of each process
+/// staging    [nBins]         scratch space
+/// valsum     [nBins]         sum over processes of coeff * template
+/// toterr     [nBins]         sqrt of the sum over processes of (coeff * error)^2
+inline void cmsHistSumAccumulate(int nBins, int nProcs, double const *templates, int const *processField,
+                                 int const *logSpace, double const *morphed, double const *coeffs,
+                                 double const *binErrors, double *staging, double *valsum, double *toterr)
+{
+   for (int j = 0; j < nBins; ++j) {
+      valsum[j] = 0.;
+      toterr[j] = 0.;
+   }
+
+   for (int ip = 0; ip < nProcs; ++ip) {
+      double const *proc = morphed + ip * nBins;
+      for (int j = 0; j < nBins; ++j) {
+         staging[j] = proc[j];
+      }
+      if (logSpace[ip]) {
+         // Back from log space, normalised to the integral of the nominal
+         for (int j = 0; j < nBins; ++j) {
+            staging[j] = std::exp(staging[j]);
+         }
+         double factor = cmsHistSumKahan(templates + processField[ip] * nBins, nBins) / cmsHistSumKahan(staging, nBins);
+         for (int j = 0; j < nBins; ++j) {
+            staging[j] *= factor;
+         }
+      }
+      // FastTemplate::CropUnderflows()
+      for (int j = 0; j < nBins; ++j) {
+         if (staging[j] < 1e-9)
+            staging[j] = 1e-9;
+      }
+      // vectorized::mul_add() and vectorized::mul_add_sqr()
+      double c = coeffs[ip];
+      double const *err = binErrors + ip * nBins;
+      for (int j = 0; j < nBins; ++j) {
+         valsum[j] += c * staging[j];
+      }
+      for (int j = 0; j < nBins; ++j) {
+         toterr[j] += (c * c * err[j] * err[j]);
+      }
+   }
+
+   for (int j = 0; j < nBins; ++j) {
+      toterr[j] = std::sqrt(toterr[j]);
+   }
+}
+
 inline void fastVerticalInterpHistPdf2(int nBins, int nCoefs, double const *coefs, double const *nominal,
                                        double const *binWidth, double const *morphsSum, double const *morphsDiff,
                                        double smoothRegion, double *out)

@@ -135,6 +135,8 @@ protected:
   mutable std::vector<int> log_space_; //! vtype_ == LogQuadLinear
   mutable std::vector<double> morphvals_; //! values of morphpars_
   mutable std::vector<double> morphed_; //! morphed templates, process by process
+  mutable std::vector<double> flat_binerrors_; //! binerrors_, active bins only
+  mutable std::vector<double> flat_staging_; //! scratch space for the kernel
 
   RooListProxy external_morphs_;
   std::vector<int> external_morph_indices_;
